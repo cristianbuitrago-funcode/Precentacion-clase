@@ -15,7 +15,7 @@ Proyecto de práctica pedagógica (Tecnología e Informática, grado 8°): un es
 
 La partida sigue la versión de **12 minutos con 3 retos** del manual: un reto fácil, uno medio y uno difícil, y al final la caja fuerte.
 
-1. **Registrar el equipo** (4 jugadores) y pulsar **▶ Iniciar** cuando empiece a correr el tiempo (12:00).
+1. **Registrar el equipo** (4 jugadores). El reloj de 12:00 empieza a correr apenas se pulsa **Crear equipo y empezar**.
 2. **Leer la historia** «Nadie escapa solo» en el panel 📖:
    - **Siguiente ▶** (o la flecha →) muestra el siguiente párrafo para que lo lea quien facilita.
    - **🔊 Leer en voz alta** narra la historia sola con la voz del navegador (elige automáticamente una voz en español).

@@ -477,6 +477,8 @@ input[type="text"] {
 input[type="text"]:focus { outline: none; border-color: var(--accent); box-shadow: 0 0 0 3px rgba(124, 92, 255, .25); }
 input.invalid { border-color: var(--danger); }
 .form-error { color: var(--danger); font-size: .88rem; min-height: 1.3em; margin: 6px 0 10px; }
+.modal-note { color: var(--muted); font-size: .88rem; margin-top: 6px; }
+.modal-note strong { color: var(--text); font-variant-numeric: tabular-nums; }
 .modal-actions { display: flex; gap: 10px; justify-content: flex-end; flex-wrap: wrap; }
 
 .result-card { text-align: center; }
@@ -932,7 +934,7 @@ input.invalid { border-color: var(--danger); }
   <!-- ================= VISTA: REGISTRO ================= -->
   <section id="registerView" class="card hero">
     <h2>Registra al siguiente equipo</h2>
-    <p>4 jugadores · 5 vidas cada uno · 12 minutos en el reloj · 3 retos con dado y la caja fuerte</p>
+    <p>4 jugadores · 5 vidas cada uno · 12 minutos en el reloj (arranca al crear el equipo) · 3 retos con dado y la caja fuerte</p>
     <button id="btnAddTeam" class="btn btn-primary btn-xl" type="button">+ Añadir equipo</button>
     <p id="registerNote" class="note"></p>
   </section>
@@ -1060,10 +1062,11 @@ input.invalid { border-color: var(--danger); }
         <input type="text" class="player-input" maxlength="24" autocomplete="off" placeholder="Jugador 3" aria-label="Jugador 3">
         <input type="text" class="player-input" maxlength="24" autocomplete="off" placeholder="Jugador 4" aria-label="Jugador 4">
       </fieldset>
+      <p class="modal-note">⏱ El reloj de <strong id="registerDuration">12:00</strong> empieza a correr apenas crees el equipo.</p>
       <p class="form-error" id="formError" role="alert"></p>
       <div class="modal-actions">
         <button type="button" class="btn btn-ghost" id="btnCancelRegister">Cancelar</button>
-        <button type="button" class="btn btn-primary" id="btnCreateTeam">Crear equipo</button>
+        <button type="button" class="btn btn-primary" id="btnCreateTeam">Crear equipo y empezar</button>
       </div>
     </div>
   </div>
@@ -1291,6 +1294,7 @@ function updateRoundPill() {
 }
 
 function openRegisterModal() {
+  $('registerDuration').textContent = formatTime(CONFIG.DURATION);
   [els.teamInput, ...els.playerInputs].forEach((i) => { i.value = ''; });
   els.formError.textContent = '';
   [els.teamInput, ...els.playerInputs].forEach((i) => i.classList.remove('invalid'));
@@ -1359,6 +1363,7 @@ function startTeam(name, playerNames) {
   resetTimerUI();
   updateRoundPill();
   resetStory();
+  startTimer(); // el reloj arranca apenas queda registrado el equipo
 }
 
 // Crea las filas de jugadores con sus 5 corazones
