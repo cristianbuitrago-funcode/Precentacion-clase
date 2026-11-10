@@ -1,0 +1,1377 @@
+<!DOCTYPE html>
+<html lang="es">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>Arena Contrarreloj</title>
+<style>
+/* =========================================================
+   1. VARIABLES Y BASE
+   ========================================================= */
+:root {
+  --bg: #0a0c11;
+  --surface: #12151d;
+  --surface-2: #191d28;
+  --border: #252a38;
+  --text: #e9ecf4;
+  --muted: #8a92a6;
+  --accent: #7c5cff;
+  --accent-2: #22d3ee;
+  --success: #2fd48f;
+  --danger: #ff4d6d;
+  --warn: #fbbf24;
+  --heart: #ff3b5c;
+  --radius: 18px;
+  --shadow: 0 20px 50px -20px rgba(0, 0, 0, .7);
+}
+
+* { box-sizing: border-box; margin: 0; padding: 0; }
+
+body {
+  min-height: 100vh;
+  background:
+    radial-gradient(900px 500px at 10% -10%, rgba(124, 92, 255, .14), transparent 60%),
+    radial-gradient(800px 500px at 110% 10%, rgba(34, 211, 238, .08), transparent 60%),
+    var(--bg);
+  color: var(--text);
+  font-family: system-ui, -apple-system, "Segoe UI", Roboto, "Helvetica Neue", Arial, sans-serif;
+  line-height: 1.5;
+  -webkit-font-smoothing: antialiased;
+}
+
+.hidden { display: none !important; }
+
+main {
+  max-width: 1100px;
+  margin: 0 auto;
+  padding: 0 16px 60px;
+  display: grid;
+  gap: 24px;
+}
+
+.card {
+  background: linear-gradient(180deg, var(--surface-2), var(--surface));
+  border: 1px solid var(--border);
+  border-radius: var(--radius);
+  box-shadow: var(--shadow);
+  padding: 24px;
+}
+
+/* =========================================================
+   2. ENCABEZADO
+   ========================================================= */
+.topbar {
+  max-width: 1100px;
+  margin: 0 auto;
+  padding: 24px 16px;
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  gap: 16px;
+  flex-wrap: wrap;
+}
+.brand { display: flex; align-items: center; gap: 14px; }
+.logo {
+  width: 48px; height: 48px;
+  display: grid; place-items: center;
+  font-size: 24px;
+  border-radius: 14px;
+  background: linear-gradient(135deg, var(--accent), var(--accent-2));
+  box-shadow: 0 8px 24px -6px rgba(124, 92, 255, .6);
+}
+.brand h1 { font-size: 1.35rem; letter-spacing: -.02em; }
+.brand p { color: var(--muted); font-size: .9rem; }
+.round-pill {
+  padding: 8px 16px;
+  border-radius: 999px;
+  border: 1px solid var(--border);
+  background: var(--surface);
+  color: var(--muted);
+  font-size: .9rem;
+  font-weight: 600;
+}
+.round-pill strong { color: var(--text); }
+
+/* =========================================================
+   3. BOTONES
+   ========================================================= */
+.btn {
+  border: 1px solid transparent;
+  border-radius: 12px;
+  padding: 12px 22px;
+  font: inherit;
+  font-weight: 700;
+  color: var(--text);
+  cursor: pointer;
+  transition: transform .15s ease, box-shadow .2s ease, opacity .2s, background .2s;
+}
+.btn:hover:not(:disabled) { transform: translateY(-2px); }
+.btn:active:not(:disabled) { transform: translateY(0) scale(.98); }
+.btn:disabled { opacity: .35; cursor: not-allowed; filter: grayscale(.6); }
+.btn:focus-visible { outline: 2px solid var(--accent-2); outline-offset: 3px; }
+
+.btn-primary {
+  background: linear-gradient(135deg, var(--accent), #5b3df5);
+  box-shadow: 0 10px 30px -10px rgba(124, 92, 255, .8);
+}
+.btn-success {
+  background: linear-gradient(135deg, var(--success), #16a974);
+  color: #04130c;
+  box-shadow: 0 10px 30px -12px rgba(47, 212, 143, .8);
+}
+.btn-danger {
+  background: linear-gradient(135deg, var(--danger), #d6284a);
+  box-shadow: 0 10px 30px -12px rgba(255, 77, 109, .8);
+}
+.btn-ghost { background: transparent; border-color: var(--border); color: var(--muted); }
+.btn-ghost:hover:not(:disabled) { color: var(--text); border-color: var(--muted); }
+.btn-xl { font-size: 1.15rem; padding: 18px 36px; border-radius: 16px; }
+.btn-sm { padding: 7px 14px; font-size: .85rem; }
+
+/* =========================================================
+   4. VISTA DE REGISTRO
+   ========================================================= */
+.hero {
+  text-align: center;
+  padding: 56px 24px;
+  display: grid;
+  justify-items: center;
+  gap: 14px;
+}
+.hero h2 { font-size: clamp(1.4rem, 4vw, 2rem); letter-spacing: -.02em; }
+.hero p { color: var(--muted); }
+.hero .btn-xl { margin-top: 12px; animation: breathe 2.6s ease-in-out infinite; }
+.note { color: var(--warn); font-size: .9rem; min-height: 1.2em; }
+
+@keyframes breathe {
+  0%, 100% { box-shadow: 0 10px 30px -10px rgba(124, 92, 255, .8); }
+  50% { box-shadow: 0 10px 50px -6px rgba(124, 92, 255, 1); }
+}
+
+/* =========================================================
+   5. VISTA DE JUEGO
+   ========================================================= */
+.game-grid {
+  display: grid;
+  grid-template-columns: 1fr 320px;
+  gap: 24px;
+  align-items: start;
+}
+.team-head {
+  display: flex;
+  justify-content: space-between;
+  align-items: flex-end;
+  gap: 12px;
+  flex-wrap: wrap;
+  margin-bottom: 18px;
+}
+.eyebrow {
+  font-size: .75rem;
+  letter-spacing: .12em;
+  text-transform: uppercase;
+  color: var(--accent-2);
+  font-weight: 700;
+}
+.team-head h2 { font-size: 1.6rem; letter-spacing: -.02em; word-break: break-word; }
+.team-stats { display: flex; gap: 8px; flex-wrap: wrap; }
+.team-stats span {
+  font-size: .85rem;
+  padding: 5px 12px;
+  border-radius: 999px;
+  background: var(--bg);
+  border: 1px solid var(--border);
+  color: var(--muted);
+}
+
+.player-list { list-style: none; display: grid; gap: 12px; }
+
+.player {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  gap: 16px;
+  padding: 14px 18px;
+  border-radius: 14px;
+  background: var(--bg);
+  border: 1px solid var(--border);
+  overflow: hidden;
+  transition: height .5s ease, opacity .5s ease, padding .5s ease, margin .5s ease, border-color .3s;
+}
+.player.hit { animation: shake .35s ease; border-color: rgba(255, 59, 92, .6); }
+.player.gone { opacity: 0; padding-top: 0; padding-bottom: 0; border-width: 0; }
+
+@keyframes shake {
+  0%, 100% { transform: translateX(0); }
+  25% { transform: translateX(-5px); }
+  50% { transform: translateX(5px); }
+  75% { transform: translateX(-3px); }
+}
+
+.name-wrap { position: relative; min-width: 0; flex: 1; }
+.player-name {
+  display: inline-block;
+  font-size: 1.1rem;
+  font-weight: 700;
+  word-break: break-word;
+}
+
+.hearts { display: flex; gap: 6px; flex: none; transition: opacity .6s ease; }
+.hint { color: var(--muted); font-size: .85rem; margin-top: 16px; }
+.locked .heart { cursor: default; pointer-events: none; }
+
+/* =========================================================
+   6. CORAZONES Y ANIMACIÓN DE RUPTURA
+   ========================================================= */
+.heart {
+  position: relative;
+  width: 34px;
+  height: 34px;
+  border: 0;
+  background: none;
+  padding: 0;
+  cursor: pointer;
+  flex: none;
+}
+.heart:focus-visible { outline: 2px solid var(--accent-2); outline-offset: 3px; border-radius: 8px; }
+.heart svg { position: absolute; inset: 0; width: 100%; height: 100%; overflow: visible; }
+
+/* Corazón entero (visible mientras tiene vida) */
+.heart .whole {
+  fill: var(--heart);
+  filter: drop-shadow(0 0 6px rgba(255, 59, 92, .5));
+  transition: transform .18s ease;
+  transform-origin: 50% 60%;
+}
+.heart:hover .whole { transform: scale(1.14); }
+.heart.breaking .whole, .heart.broken .whole { opacity: 0; }
+
+/* Las dos mitades, recortadas con una grieta irregular (solo aparecen al romperse) */
+.heart .half {
+  fill: var(--heart);
+  opacity: 0;
+  transform-origin: 50% 90%;
+}
+.heart.breaking .half { opacity: 1; }
+.heart .half.left  { clip-path: polygon(0 0, 54% 0, 44% 28%, 58% 48%, 42% 68%, 52% 100%, 0 100%); }
+.heart .half.right { clip-path: polygon(54% 0, 100% 0, 100% 100%, 52% 100%, 42% 68%, 58% 48%, 44% 28%); }
+
+/* Silueta punteada que queda en el lugar del corazón perdido */
+.heart .ghost {
+  fill: none;
+  stroke: #5a6178;
+  stroke-width: 1.6;
+  stroke-dasharray: 3 2;
+  opacity: 0;
+  transition: opacity .4s ease .5s;
+}
+
+.heart.breaking .half.left  { animation: splitLeft .8s cubic-bezier(.3, .7, .4, 1) forwards; }
+.heart.breaking .half.right { animation: splitRight .8s cubic-bezier(.3, .7, .4, 1) forwards; }
+.heart.broken { cursor: default; pointer-events: none; }
+.heart.broken .half { opacity: 0; }
+.heart.broken .ghost { opacity: 1; }
+
+@keyframes splitLeft {
+  0%   { transform: scale(1); }
+  15%  { transform: scale(1.35); filter: drop-shadow(0 0 14px #ff3b5c) brightness(1.6); }
+  35%  { transform: translate(-5px, -2px) rotate(-16deg) scale(1.15); opacity: 1; }
+  100% { transform: translate(-16px, 18px) rotate(-55deg) scale(0); opacity: 0; }
+}
+@keyframes splitRight {
+  0%   { transform: scale(1); }
+  15%  { transform: scale(1.35); filter: drop-shadow(0 0 14px #ff3b5c) brightness(1.6); }
+  35%  { transform: translate(5px, -2px) rotate(16deg) scale(1.15); opacity: 1; }
+  100% { transform: translate(16px, 18px) rotate(55deg) scale(0); opacity: 0; }
+}
+
+/* Onda expansiva y esquirlas */
+.burst {
+  position: absolute;
+  left: 50%; top: 50%;
+  width: 10px; height: 10px;
+  margin: -5px 0 0 -5px;
+  border-radius: 50%;
+  border: 2px solid var(--heart);
+  pointer-events: none;
+  animation: burst .6s ease-out forwards;
+}
+@keyframes burst {
+  from { transform: scale(1); opacity: 1; }
+  to   { transform: scale(7); opacity: 0; }
+}
+.shard {
+  position: absolute;
+  left: 50%; top: 50%;
+  width: 6px; height: 6px;
+  background: var(--heart);
+  border-radius: 1px;
+  pointer-events: none;
+  animation: shardFly .75s cubic-bezier(.2, .7, .3, 1) forwards;
+}
+@keyframes shardFly {
+  from { transform: translate(-50%, -50%) rotate(0); opacity: 1; }
+  to   { transform: translate(calc(-50% + var(--dx)), calc(-50% + var(--dy))) rotate(var(--rot)) scale(.2); opacity: 0; }
+}
+
+/* =========================================================
+   7. ANIMACIÓN DE QUEMADO DEL NOMBRE
+   ========================================================= */
+.player.burning { border-color: rgba(255, 106, 0, .6); box-shadow: inset 0 -20px 40px -20px rgba(255, 80, 0, .5); }
+.player.burning .hearts { opacity: .15; }
+
+/* Base de llamas que parpadea bajo el nombre */
+.player.burning .name-wrap::after {
+  content: "";
+  position: absolute;
+  left: -6px; right: -6px; bottom: -6px;
+  height: 22px;
+  background: radial-gradient(ellipse at 50% 100%, rgba(255, 200, 60, .9), rgba(255, 90, 0, .6) 40%, transparent 70%);
+  filter: blur(6px);
+  animation: flameBase .25s ease-in-out infinite alternate, flameOut 2.2s ease forwards;
+  pointer-events: none;
+}
+@keyframes flameBase {
+  from { transform: scaleY(.8) scaleX(1); }
+  to   { transform: scaleY(1.25) scaleX(.96); }
+}
+@keyframes flameOut { 0%, 60% { opacity: 1; } 100% { opacity: 0; } }
+
+/* Cada letra se enciende, se vuelve ceniza y se desintegra */
+.char {
+  display: inline-block;
+  animation: burnChar 1.3s ease-in forwards;
+}
+@keyframes burnChar {
+  0%   { color: var(--text); text-shadow: none; }
+  18%  { color: #fff3b0; text-shadow: 0 0 6px #ffd000, 0 -4px 10px #ff9800; }
+  40%  { color: #ff7a00; text-shadow: 0 0 10px #ff4d00, 0 -8px 16px #ff2a00; transform: translateY(-2px); }
+  65%  { color: #7a2e12; text-shadow: 0 -6px 14px rgba(255, 60, 0, .6); filter: blur(.4px); }
+  82%  { color: #4a4a4a; text-shadow: none; opacity: .8; }
+  100% { color: #333; opacity: 0; transform: translateY(-22px) scale(.7) rotate(10deg); filter: blur(5px); }
+}
+
+/* Brasas que suben */
+.ember {
+  position: absolute;
+  bottom: 0;
+  width: 4px; height: 4px;
+  border-radius: 50%;
+  background: #ffb347;
+  box-shadow: 0 0 6px #ff6a00, 0 0 12px #ff3d00;
+  pointer-events: none;
+  animation: emberRise var(--dur) ease-out forwards;
+}
+@keyframes emberRise {
+  0%   { transform: translate(0, 0) scale(1); opacity: 1; }
+  60%  { background: #ff5a1f; }
+  100% { transform: translate(var(--dx), -46px) scale(.2); opacity: 0; background: #555; }
+}
+
+/* =========================================================
+   8. CRONÓMETRO
+   ========================================================= */
+.timer-card { display: grid; justify-items: center; gap: 22px; text-align: center; }
+.timer-ring { position: relative; width: 200px; height: 200px; }
+.timer-ring svg { width: 100%; height: 100%; transform: rotate(-90deg); }
+.ring-bg { fill: none; stroke: var(--border); stroke-width: 10; }
+.ring-fg {
+  fill: none;
+  stroke: url(#ringGradient);
+  stroke-width: 10;
+  stroke-linecap: round;
+  transition: stroke-dashoffset .25s linear;
+}
+.timer-center { position: absolute; inset: 0; display: grid; place-content: center; }
+.timer-text {
+  font-size: 3rem;
+  font-weight: 800;
+  font-variant-numeric: tabular-nums;
+  letter-spacing: -.03em;
+  line-height: 1;
+}
+.timer-label { color: var(--muted); font-size: .85rem; margin-top: 6px; text-transform: uppercase; letter-spacing: .12em; }
+.timer-card.warning .timer-text { color: var(--danger); animation: pulse 1s ease-in-out infinite; }
+.timer-card.warning .ring-fg { stroke: var(--danger); }
+@keyframes pulse { 50% { transform: scale(1.06); } }
+.timer-actions { display: flex; gap: 12px; flex-wrap: wrap; justify-content: center; }
+
+/* =========================================================
+   9. TABLA DE POSICIONES
+   ========================================================= */
+.board-head {
+  display: flex;
+  justify-content: space-between;
+  align-items: center;
+  gap: 12px;
+  flex-wrap: wrap;
+  margin-bottom: 16px;
+}
+.board-head h2 { font-size: 1.3rem; }
+.board-tools { display: flex; align-items: center; gap: 12px; }
+.board-count { color: var(--muted); font-weight: 700; font-variant-numeric: tabular-nums; }
+.table-wrap { overflow-x: auto; }
+table { width: 100%; border-collapse: collapse; min-width: 560px; }
+th, td { padding: 12px 10px; text-align: left; border-bottom: 1px solid var(--border); }
+th { color: var(--muted); font-size: .75rem; text-transform: uppercase; letter-spacing: .08em; font-weight: 700; }
+td { font-variant-numeric: tabular-nums; }
+td.num, th.num { text-align: right; }
+.team-cell strong { display: block; }
+.team-cell small { color: var(--muted); }
+.pos { font-size: 1.1rem; font-weight: 800; width: 48px; }
+.points { font-weight: 800; font-size: 1.1rem; color: var(--accent-2); }
+.tag { font-size: .75rem; font-weight: 700; padding: 3px 10px; border-radius: 999px; white-space: nowrap; }
+.tag.win { background: rgba(47, 212, 143, .12); color: var(--success); }
+.tag.lose { background: rgba(255, 77, 109, .12); color: var(--danger); }
+.empty { text-align: center; color: var(--muted); padding: 30px; }
+tr.new-row { animation: rowIn 1.8s ease; }
+@keyframes rowIn {
+  0% { background: rgba(124, 92, 255, .35); }
+  100% { background: transparent; }
+}
+
+/* =========================================================
+   10. MODALES
+   ========================================================= */
+.modal {
+  position: fixed;
+  inset: 0;
+  z-index: 50;
+  display: grid;
+  place-items: center;
+  padding: 16px;
+  background: rgba(5, 6, 10, .75);
+  backdrop-filter: blur(6px);
+  animation: fadeIn .25s ease;
+}
+.modal-card {
+  width: 100%;
+  max-width: 460px;
+  max-height: calc(100vh - 32px);
+  overflow-y: auto;
+  background: var(--surface-2);
+  border: 1px solid var(--border);
+  border-radius: 22px;
+  padding: 28px;
+  box-shadow: 0 40px 80px -20px rgba(0, 0, 0, .9);
+  animation: popIn .35s cubic-bezier(.2, 1.3, .4, 1);
+}
+@keyframes fadeIn { from { opacity: 0; } }
+@keyframes popIn { from { opacity: 0; transform: translateY(20px) scale(.95); } }
+
+.modal-card h3 { font-size: 1.4rem; margin-bottom: 18px; }
+.field { display: grid; gap: 6px; margin-bottom: 14px; }
+.field label, legend { font-size: .8rem; color: var(--muted); font-weight: 700; text-transform: uppercase; letter-spacing: .08em; }
+fieldset { border: 0; display: grid; gap: 10px; margin-bottom: 8px; }
+legend { margin-bottom: 8px; }
+input[type="text"] {
+  width: 100%;
+  padding: 12px 14px;
+  border-radius: 12px;
+  border: 1px solid var(--border);
+  background: var(--bg);
+  color: var(--text);
+  font: inherit;
+  transition: border-color .2s, box-shadow .2s;
+}
+input[type="text"]:focus { outline: none; border-color: var(--accent); box-shadow: 0 0 0 3px rgba(124, 92, 255, .25); }
+input.invalid { border-color: var(--danger); }
+.form-error { color: var(--danger); font-size: .88rem; min-height: 1.3em; margin: 6px 0 10px; }
+.modal-actions { display: flex; gap: 10px; justify-content: flex-end; flex-wrap: wrap; }
+
+.result-card { text-align: center; }
+.result-icon { font-size: 3.6rem; line-height: 1; margin-bottom: 10px; animation: bounce 1.2s ease infinite; }
+@keyframes bounce { 50% { transform: translateY(-8px); } }
+.result-card h3 { margin-bottom: 8px; font-size: 1.6rem; }
+.result-card.win h3 { color: var(--success); }
+.result-card.lose h3 { color: var(--danger); }
+.result-msg { color: var(--muted); margin-bottom: 20px; }
+.breakdown { display: grid; gap: 8px; text-align: left; margin-bottom: 16px; }
+.breakdown div {
+  display: flex; justify-content: space-between; gap: 12px;
+  padding: 10px 14px; border-radius: 10px; background: var(--bg);
+  font-size: .95rem;
+}
+.breakdown span:last-child { font-weight: 700; font-variant-numeric: tabular-nums; }
+.total { font-size: 1.1rem; margin-bottom: 22px; }
+.total strong { font-size: 2.2rem; color: var(--accent-2); display: block; font-variant-numeric: tabular-nums; }
+
+/* =========================================================
+   11. EFECTOS DE PANTALLA (confeti / destello de derrota)
+   ========================================================= */
+.fx-layer { position: fixed; inset: 0; pointer-events: none; z-index: 60; overflow: hidden; }
+.confetti {
+  position: absolute;
+  top: -20px;
+  width: 9px; height: 14px;
+  border-radius: 2px;
+  animation: fall var(--dur) linear forwards;
+}
+@keyframes fall {
+  to { transform: translate(var(--dx), 110vh) rotate(var(--rot)); }
+}
+.defeat-flash {
+  position: absolute; inset: 0;
+  background: radial-gradient(circle, transparent 30%, rgba(255, 30, 60, .55));
+  animation: flash 1.2s ease forwards;
+}
+@keyframes flash { 0% { opacity: 0; } 20% { opacity: 1; } 100% { opacity: 0; } }
+
+/* =========================================================
+   12. RESPONSIVE Y ACCESIBILIDAD
+   ========================================================= */
+@media (max-width: 820px) {
+  .game-grid { grid-template-columns: 1fr; }
+  .timer-card { order: -1; }
+}
+@media (max-width: 480px) {
+  .card { padding: 18px; }
+  .player { flex-direction: column; align-items: flex-start; gap: 10px; }
+  .heart { width: 30px; height: 30px; }
+  .timer-ring { width: 170px; height: 170px; }
+  .timer-text { font-size: 2.5rem; }
+}
+@media (prefers-reduced-motion: reduce) {
+  .hero .btn-xl, .result-icon, .timer-card.warning .timer-text { animation: none; }
+}
+</style>
+</head>
+<body>
+
+<!-- ================= ENCABEZADO ================= -->
+<header class="topbar">
+  <div class="brand">
+    <div class="logo" aria-hidden="true">⏳</div>
+    <div>
+      <h1>Arena Contrarreloj</h1>
+      <p>Gestión de equipos y vidas</p>
+    </div>
+  </div>
+  <div class="round-pill" id="roundPill"></div>
+</header>
+
+<main>
+  <!-- ================= VISTA: REGISTRO ================= -->
+  <section id="registerView" class="card hero">
+    <h2>Registra al siguiente equipo</h2>
+    <p>4 jugadores · 5 vidas cada uno · 10 minutos en el reloj</p>
+    <button id="btnAddTeam" class="btn btn-primary btn-xl" type="button">+ Añadir equipo</button>
+    <p id="registerNote" class="note"></p>
+  </section>
+
+  <!-- ================= VISTA: JUEGO ================= -->
+  <section id="gameView" class="hidden">
+    <div class="game-grid">
+      <div class="card" id="teamCard">
+        <div class="team-head">
+          <div>
+            <span class="eyebrow">Equipo en juego</span>
+            <h2 id="teamName"></h2>
+          </div>
+          <div class="team-stats">
+            <span id="statAlive"></span>
+            <span id="statHearts"></span>
+          </div>
+        </div>
+        <ul id="playerList" class="player-list"></ul>
+        <p class="hint">Toca un corazón para quitarle una vida al jugador.</p>
+      </div>
+
+      <div class="card timer-card" id="timerCard">
+        <div class="timer-ring">
+          <svg viewBox="0 0 200 200" aria-hidden="true">
+            <defs>
+              <linearGradient id="ringGradient" x1="0" y1="0" x2="1" y2="1">
+                <stop offset="0%" stop-color="#7c5cff"/>
+                <stop offset="100%" stop-color="#22d3ee"/>
+              </linearGradient>
+            </defs>
+            <circle class="ring-bg" cx="100" cy="100" r="88"/>
+            <circle class="ring-fg" id="ringFg" cx="100" cy="100" r="88"/>
+          </svg>
+          <div class="timer-center">
+            <div class="timer-text" id="timerText" role="timer" aria-live="off">10:00</div>
+            <div class="timer-label" id="timerLabel">Listo</div>
+          </div>
+        </div>
+        <div class="timer-actions">
+          <button id="btnStart" class="btn btn-success" type="button">▶ Iniciar</button>
+          <button id="btnEnd" class="btn btn-danger" type="button" disabled>■ Terminar</button>
+        </div>
+      </div>
+    </div>
+  </section>
+
+  <!-- ================= TABLA DE POSICIONES ================= -->
+  <section class="card" id="boardSection">
+    <div class="board-head">
+      <h2>🏆 Tabla de posiciones</h2>
+      <div class="board-tools">
+        <span class="board-count" id="boardCount">0/10</span>
+        <button id="btnResetAll" class="btn btn-ghost btn-sm" type="button">Reiniciar torneo</button>
+      </div>
+    </div>
+    <div class="table-wrap">
+      <table>
+        <thead>
+          <tr>
+            <th>#</th>
+            <th>Equipo</th>
+            <th>Resultado</th>
+            <th class="num">Tiempo</th>
+            <th class="num">❤️</th>
+            <th class="num">Vivos</th>
+            <th class="num">Velocidad</th>
+            <th class="num">Puntos</th>
+          </tr>
+        </thead>
+        <tbody id="boardBody"></tbody>
+      </table>
+    </div>
+  </section>
+</main>
+
+<!-- ================= MODAL: REGISTRO DE EQUIPO ================= -->
+<div id="registerModal" class="modal hidden" role="dialog" aria-modal="true" aria-labelledby="registerTitle">
+  <div class="modal-card">
+    <div id="registerForm">
+      <h3 id="registerTitle">Nuevo equipo</h3>
+      <div class="field">
+        <label for="teamInput">Nombre del equipo</label>
+        <input type="text" id="teamInput" maxlength="30" autocomplete="off" placeholder="Ej. Los Invencibles">
+      </div>
+      <fieldset>
+        <legend>Jugadores (4)</legend>
+        <input type="text" class="player-input" maxlength="24" autocomplete="off" placeholder="Jugador 1" aria-label="Jugador 1">
+        <input type="text" class="player-input" maxlength="24" autocomplete="off" placeholder="Jugador 2" aria-label="Jugador 2">
+        <input type="text" class="player-input" maxlength="24" autocomplete="off" placeholder="Jugador 3" aria-label="Jugador 3">
+        <input type="text" class="player-input" maxlength="24" autocomplete="off" placeholder="Jugador 4" aria-label="Jugador 4">
+      </fieldset>
+      <p class="form-error" id="formError" role="alert"></p>
+      <div class="modal-actions">
+        <button type="button" class="btn btn-ghost" id="btnCancelRegister">Cancelar</button>
+        <button type="button" class="btn btn-primary" id="btnCreateTeam">Crear equipo</button>
+      </div>
+    </div>
+  </div>
+</div>
+
+<!-- ================= MODAL: RESULTADO ================= -->
+<div id="resultModal" class="modal hidden" role="dialog" aria-modal="true" aria-labelledby="resultTitle">
+  <div class="modal-card result-card" id="resultCard">
+    <div class="result-icon" id="resultIcon"></div>
+    <h3 id="resultTitle"></h3>
+    <p class="result-msg" id="resultMsg"></p>
+    <div class="breakdown" id="resultBreakdown"></div>
+    <div class="total">Puntuación total<strong id="resultTotal">0</strong></div>
+    <button id="btnNext" class="btn btn-primary" type="button">Siguiente equipo</button>
+  </div>
+</div>
+
+<!-- ================= MODAL: CONFIRMACIÓN ================= -->
+<div id="confirmModal" class="modal hidden" role="dialog" aria-modal="true" aria-labelledby="confirmTitle">
+  <div class="modal-card">
+    <h3 id="confirmTitle">¿Reiniciar torneo?</h3>
+    <p class="result-msg" id="confirmMsg"></p>
+    <div class="modal-actions">
+      <button type="button" class="btn btn-ghost" id="btnConfirmNo">Cancelar</button>
+      <button type="button" class="btn btn-danger" id="btnConfirmYes">Sí, borrar todo</button>
+    </div>
+  </div>
+</div>
+
+<!-- Capa para efectos de pantalla completa -->
+<div class="fx-layer" id="fxLayer" aria-hidden="true"></div>
+
+<script>
+/* =========================================================
+   CONFIGURACIÓN
+   ========================================================= */
+const CONFIG = {
+  MAX_TEAMS: 10,          // Grupos del torneo
+  PLAYERS: 4,             // Jugadores por equipo
+  HEARTS: 5,              // Vidas por jugador
+  DURATION: 10 * 60,      // Duración en segundos (10:00)
+  POINTS_PER_HEART: 10,   // Puntos por corazón restante
+  POINTS_PER_ALIVE: 100,  // Puntos por jugador vivo
+  SPEED_MAX: 100,         // Puntos del equipo más rápido
+  SPEED_MIN: 10,          // Puntos del equipo más lento
+  STORAGE_KEY: 'arena-contrarreloj-v1'
+};
+
+// Ruta SVG de un corazón (viewBox 0 0 24 24)
+const HEART_PATH = 'M12 21.35l-1.45-1.32C5.4 15.36 2 12.28 2 8.5 2 5.42 4.42 3 7.5 3c1.74 0 3.41.81 4.5 2.09C13.09 3.81 14.76 3 16.5 3 19.58 3 22 5.42 22 8.5c0 3.78-3.4 6.86-8.55 11.54L12 21.35z';
+
+const VICTORY_MESSAGES = [
+  '¡Increíble trabajo, lo lograron!',
+  '¡Equipazo! Lo resolvieron antes de que se acabara el tiempo.',
+  '¡Misión cumplida! El trabajo en equipo hizo la diferencia.',
+  '¡Brillante! Demostraron que juntos son imparables.'
+];
+
+/* =========================================================
+   ESTADO
+   ========================================================= */
+const state = {
+  leaderboard: loadLeaderboard(), // Equipos que ya jugaron
+  current: null,                  // Equipo en juego
+  timerId: null,
+  endAt: 0
+};
+
+/* =========================================================
+   REFERENCIAS AL DOM
+   ========================================================= */
+const $ = (id) => document.getElementById(id);
+const els = {
+  roundPill: $('roundPill'),
+  registerView: $('registerView'),
+  gameView: $('gameView'),
+  btnAddTeam: $('btnAddTeam'),
+  registerNote: $('registerNote'),
+  registerModal: $('registerModal'),
+  registerForm: $('registerForm'),
+  teamInput: $('teamInput'),
+  playerInputs: [...document.querySelectorAll('.player-input')],
+  formError: $('formError'),
+  btnCancelRegister: $('btnCancelRegister'),
+  teamCard: $('teamCard'),
+  teamName: $('teamName'),
+  statAlive: $('statAlive'),
+  statHearts: $('statHearts'),
+  playerList: $('playerList'),
+  timerCard: $('timerCard'),
+  timerText: $('timerText'),
+  timerLabel: $('timerLabel'),
+  ringFg: $('ringFg'),
+  btnStart: $('btnStart'),
+  btnEnd: $('btnEnd'),
+  boardBody: $('boardBody'),
+  boardCount: $('boardCount'),
+  btnResetAll: $('btnResetAll'),
+  resultModal: $('resultModal'),
+  resultCard: $('resultCard'),
+  resultIcon: $('resultIcon'),
+  resultTitle: $('resultTitle'),
+  resultMsg: $('resultMsg'),
+  resultBreakdown: $('resultBreakdown'),
+  resultTotal: $('resultTotal'),
+  btnNext: $('btnNext'),
+  fxLayer: $('fxLayer')
+};
+
+const RING_LENGTH = 2 * Math.PI * 88; // Circunferencia del anillo del cronómetro
+els.ringFg.style.strokeDasharray = RING_LENGTH;
+
+/* =========================================================
+   UTILIDADES
+   ========================================================= */
+function formatTime(totalSeconds) {
+  const s = Math.max(0, totalSeconds);
+  const m = Math.floor(s / 60);
+  return `${String(m).padStart(2, '0')}:${String(s % 60).padStart(2, '0')}`;
+}
+
+function random(min, max) { return Math.random() * (max - min) + min; }
+
+function loadLeaderboard() {
+  try {
+    const data = JSON.parse(localStorage.getItem(CONFIG.STORAGE_KEY));
+    return Array.isArray(data) ? data : [];
+  } catch { return []; }
+}
+
+function saveLeaderboard() {
+  try { localStorage.setItem(CONFIG.STORAGE_KEY, JSON.stringify(state.leaderboard)); } catch { /* sin almacenamiento */ }
+}
+
+/* =========================================================
+   VISTA DE REGISTRO
+   ========================================================= */
+function showRegisterView() {
+  state.current = null;
+  els.gameView.classList.add('hidden');
+  els.registerView.classList.remove('hidden');
+
+  const full = state.leaderboard.length >= CONFIG.MAX_TEAMS;
+  els.btnAddTeam.disabled = full;
+  els.registerNote.textContent = full
+    ? `Se completaron los ${CONFIG.MAX_TEAMS} equipos. Revisa la tabla o reinicia el torneo.`
+    : '';
+  updateRoundPill();
+}
+
+function updateRoundPill() {
+  const played = state.leaderboard.length;
+  if (played >= CONFIG.MAX_TEAMS && !state.current) {
+    els.roundPill.innerHTML = '<strong>Torneo completo</strong>';
+  } else {
+    els.roundPill.innerHTML = `Equipo <strong>${Math.min(played + 1, CONFIG.MAX_TEAMS)}</strong> de ${CONFIG.MAX_TEAMS}`;
+  }
+}
+
+function openRegisterModal() {
+  [els.teamInput, ...els.playerInputs].forEach((i) => { i.value = ''; });
+  els.formError.textContent = '';
+  [els.teamInput, ...els.playerInputs].forEach((i) => i.classList.remove('invalid'));
+  els.registerModal.classList.remove('hidden');
+  setTimeout(() => els.teamInput.focus(), 50);
+}
+
+function closeRegisterModal() {
+  els.registerModal.classList.add('hidden');
+  els.btnAddTeam.focus();
+}
+
+// Valida el formulario y crea el equipo
+function handleRegisterSubmit() {
+  const inputs = [els.teamInput, ...els.playerInputs];
+  inputs.forEach((i) => i.classList.remove('invalid'));
+
+  const teamName = els.teamInput.value.trim();
+  const players = els.playerInputs.map((i) => i.value.trim());
+  const empty = inputs.filter((i) => !i.value.trim());
+
+  if (empty.length) {
+    empty.forEach((i) => i.classList.add('invalid'));
+    els.formError.textContent = 'Completa el nombre del equipo y los 4 jugadores.';
+    empty[0].focus();
+    return;
+  }
+
+  const lower = players.map((p) => p.toLowerCase());
+  const dupIndex = lower.findIndex((p, i) => lower.indexOf(p) !== i);
+  if (dupIndex !== -1) {
+    els.playerInputs[dupIndex].classList.add('invalid');
+    els.formError.textContent = 'Cada jugador debe tener un nombre distinto.';
+    els.playerInputs[dupIndex].focus();
+    return;
+  }
+
+  if (state.leaderboard.some((t) => t.name.toLowerCase() === teamName.toLowerCase())) {
+    els.teamInput.classList.add('invalid');
+    els.formError.textContent = 'Ya existe un equipo con ese nombre en la tabla.';
+    els.teamInput.focus();
+    return;
+  }
+
+  closeRegisterModal();
+  startTeam(teamName, players);
+}
+
+/* =========================================================
+   VISTA DE JUEGO
+   ========================================================= */
+function startTeam(name, playerNames) {
+  state.current = {
+    name,
+    status: 'ready', // ready | running | finished
+    players: playerNames.map((p) => ({ name: p, hearts: CONFIG.HEARTS, alive: true }))
+  };
+
+  els.registerView.classList.add('hidden');
+  els.gameView.classList.remove('hidden');
+  els.teamCard.classList.remove('locked');
+  els.teamName.textContent = name;
+
+  renderPlayers();
+  updateTeamStats();
+  resetTimerUI();
+  updateRoundPill();
+}
+
+// Crea las filas de jugadores con sus 5 corazones
+function renderPlayers() {
+  els.playerList.innerHTML = '';
+  state.current.players.forEach((player, pIndex) => {
+    const li = document.createElement('li');
+    li.className = 'player';
+
+    const wrap = document.createElement('div');
+    wrap.className = 'name-wrap';
+    const name = document.createElement('span');
+    name.className = 'player-name';
+    name.textContent = player.name;
+    wrap.appendChild(name);
+
+    const hearts = document.createElement('div');
+    hearts.className = 'hearts';
+    for (let h = 0; h < CONFIG.HEARTS; h++) {
+      hearts.appendChild(createHeart(pIndex, h, player.name));
+    }
+
+    li.append(wrap, hearts);
+    els.playerList.appendChild(li);
+  });
+}
+
+function createHeart(pIndex, hIndex, playerName) {
+  const btn = document.createElement('button');
+  btn.type = 'button';
+  btn.className = 'heart';
+  btn.setAttribute('aria-label', `Quitar vida ${hIndex + 1} a ${playerName}`);
+  btn.innerHTML = `
+    <svg viewBox="0 0 24 24" aria-hidden="true"><path class="ghost" d="${HEART_PATH}"/></svg>
+    <svg viewBox="0 0 24 24" aria-hidden="true"><path class="whole" d="${HEART_PATH}"/></svg>
+    <svg viewBox="0 0 24 24" aria-hidden="true"><path class="half left" d="${HEART_PATH}"/></svg>
+    <svg viewBox="0 0 24 24" aria-hidden="true"><path class="half right" d="${HEART_PATH}"/></svg>`;
+  btn.addEventListener('click', () => breakHeart(pIndex, btn));
+  return btn;
+}
+
+function updateTeamStats() {
+  const players = state.current.players;
+  const alive = players.filter((p) => p.alive).length;
+  const hearts = players.reduce((sum, p) => sum + p.hearts, 0);
+  els.statAlive.textContent = `🧍 ${alive}/${CONFIG.PLAYERS} vivos`;
+  els.statHearts.textContent = `❤️ ${hearts}/${CONFIG.PLAYERS * CONFIG.HEARTS}`;
+}
+
+/* =========================================================
+   MECÁNICA DE CORAZONES
+   ========================================================= */
+function breakHeart(pIndex, btn) {
+  const game = state.current;
+  if (!game || game.status === 'finished') return;
+  const player = game.players[pIndex];
+  if (!player.alive || btn.classList.contains('breaking')) return;
+
+  player.hearts--;
+  btn.classList.add('breaking');
+  btn.disabled = true;
+  btn.setAttribute('aria-label', 'Vida perdida');
+  spawnHeartBurst(btn);
+
+  // Sacudida de la fila del jugador
+  const li = btn.closest('.player');
+  li.classList.remove('hit');
+  void li.offsetWidth; // reinicia la animación
+  li.classList.add('hit');
+
+  // Al terminar la ruptura, el corazón queda como silueta rota
+  setTimeout(() => {
+    btn.classList.remove('breaking');
+    btn.classList.add('broken');
+  }, 800);
+
+  if (player.hearts === 0) {
+    player.alive = false;
+    setTimeout(() => burnPlayer(li), 650);
+
+    // Si ya no queda ningún jugador vivo, el equipo queda eliminado
+    if (game.players.every((p) => !p.alive)) eliminateTeam();
+  }
+  updateTeamStats();
+}
+
+/* =========================================================
+   ELIMINACIÓN TOTAL: el cronómetro cae a 00:00
+   ========================================================= */
+function eliminateTeam() {
+  const game = state.current;
+  const wasRunning = game.status === 'running';
+
+  // Congela el juego: ya no se puede terminar ni tocar corazones
+  clearInterval(state.timerId);
+  game.status = 'eliminating';
+  els.btnStart.disabled = true;
+  els.btnStart.textContent = 'Eliminados';
+  els.btnEnd.disabled = true;
+  els.teamCard.classList.add('locked');
+  els.timerLabel.textContent = 'Sin vidas';
+
+  // Tiempo desde el que arranca la caída (10:00 si no habían iniciado)
+  const fromMs = wasRunning ? getRemainingMs() : CONFIG.DURATION * 1000;
+
+  // Espera a que se vea quemarse el último nombre y luego vacía el reloj
+  setTimeout(() => drainTimer(fromMs, () => finishGame('defeat', 'eliminated')), 1400);
+}
+
+// Animación rápida del cronómetro hasta 00:00
+function drainTimer(fromMs, done) {
+  const duration = 1500;
+  const start = performance.now();
+  els.timerCard.classList.add('warning');
+
+  const step = (now) => {
+    const t = Math.min(1, (now - start) / duration);
+    const ms = fromMs * (1 - t * t); // acelera al final
+    els.timerText.textContent = formatTime(Math.ceil(ms / 1000));
+    els.ringFg.style.strokeDashoffset = RING_LENGTH * (1 - ms / (CONFIG.DURATION * 1000));
+    if (t < 1) requestAnimationFrame(step);
+    else done();
+  };
+  requestAnimationFrame(step);
+}
+
+// Onda expansiva + esquirlas saliendo del corazón
+function spawnHeartBurst(btn) {
+  const ring = document.createElement('span');
+  ring.className = 'burst';
+  btn.appendChild(ring);
+
+  for (let i = 0; i < 10; i++) {
+    const shard = document.createElement('span');
+    shard.className = 'shard';
+    const angle = (Math.PI * 2 * i) / 10 + random(-.3, .3);
+    const dist = random(22, 42);
+    shard.style.setProperty('--dx', `${Math.cos(angle) * dist}px`);
+    shard.style.setProperty('--dy', `${Math.sin(angle) * dist}px`);
+    shard.style.setProperty('--rot', `${random(-360, 360)}deg`);
+    btn.appendChild(shard);
+  }
+  setTimeout(() => btn.querySelectorAll('.burst, .shard').forEach((n) => n.remove()), 800);
+}
+
+/* =========================================================
+   ANIMACIÓN DE QUEMADO
+   ========================================================= */
+function burnPlayer(li) {
+  const nameEl = li.querySelector('.player-name');
+  const chars = [...nameEl.textContent];
+  const delay = Math.min(70, 900 / chars.length); // nombres largos no tardan más
+
+  // Divide el nombre en letras para quemarlas una por una
+  nameEl.textContent = '';
+  chars.forEach((ch, i) => {
+    const span = document.createElement('span');
+    span.className = 'char';
+    span.textContent = ch === ' ' ? '\u00A0' : ch;
+    span.style.animationDelay = `${i * delay}ms`;
+    nameEl.appendChild(span);
+  });
+
+  li.classList.add('burning');
+  const wrap = li.querySelector('.name-wrap');
+  const emberTimer = setInterval(() => spawnEmber(wrap, nameEl), 55);
+  const totalTime = chars.length * delay + 1300;
+
+  setTimeout(() => {
+    clearInterval(emberTimer);
+    collapseRow(li);
+  }, totalTime);
+}
+
+function spawnEmber(wrap, nameEl) {
+  const ember = document.createElement('span');
+  ember.className = 'ember';
+  ember.style.left = `${random(0, nameEl.offsetWidth)}px`;
+  ember.style.setProperty('--dx', `${random(-18, 18)}px`);
+  ember.style.setProperty('--dur', `${random(700, 1300)}ms`);
+  wrap.appendChild(ember);
+  setTimeout(() => ember.remove(), 1400);
+}
+
+// Hace desaparecer la fila del jugador por completo
+function collapseRow(li) {
+  li.style.height = `${li.offsetHeight}px`;
+  void li.offsetHeight;
+  li.classList.add('gone');
+  li.style.height = '0px';
+  setTimeout(() => { li.style.display = 'none'; }, 550);
+}
+
+/* =========================================================
+   CRONÓMETRO
+   ========================================================= */
+function resetTimerUI() {
+  clearInterval(state.timerId);
+  els.timerText.textContent = formatTime(CONFIG.DURATION);
+  els.timerLabel.textContent = 'Listo';
+  els.timerCard.classList.remove('warning');
+  els.ringFg.style.strokeDashoffset = 0;
+  els.btnStart.disabled = false;
+  els.btnStart.textContent = '▶ Iniciar';
+  els.btnEnd.disabled = true;
+}
+
+function startTimer() {
+  const game = state.current;
+  if (!game || game.status !== 'ready') return;
+
+  game.status = 'running';
+  state.endAt = Date.now() + CONFIG.DURATION * 1000; // basado en reloj real: no se desfasa
+  els.btnStart.disabled = true;
+  els.btnStart.textContent = 'En curso…';
+  els.btnEnd.disabled = false;
+  els.timerLabel.textContent = 'En juego';
+
+  tick();
+  state.timerId = setInterval(tick, 200);
+}
+
+function getRemainingMs() { return Math.max(0, state.endAt - Date.now()); }
+
+function tick() {
+  const ms = getRemainingMs();
+  const secs = Math.ceil(ms / 1000);
+
+  els.timerText.textContent = formatTime(secs);
+  els.ringFg.style.strokeDashoffset = RING_LENGTH * (1 - ms / (CONFIG.DURATION * 1000));
+  els.timerCard.classList.toggle('warning', secs <= 60 && secs > 0);
+
+  if (ms <= 0) finishGame('defeat'); // Escenario B
+}
+
+/* =========================================================
+   FINALIZACIÓN Y PUNTUACIÓN
+   ========================================================= */
+// Escala de 10 niveles: cada 1/10 del tiempo sobrante vale 10 puntos (100 máx., 10 mín.)
+function calcSpeedPoints(remainingSecs) {
+  const bandSize = CONFIG.DURATION / 10;
+  const points = Math.ceil(remainingSecs / bandSize) * (CONFIG.SPEED_MAX / 10);
+  return Math.min(CONFIG.SPEED_MAX, Math.max(CONFIG.SPEED_MIN, points));
+}
+
+function finishGame(result, reason = result) {
+  const game = state.current;
+  if (!game || !['running', 'eliminating'].includes(game.status)) return;
+
+  clearInterval(state.timerId);
+  game.status = 'finished';
+
+  const remaining = result === 'victory' ? Math.ceil(getRemainingMs() / 1000) : 0;
+  els.timerText.textContent = formatTime(remaining);
+  els.timerLabel.textContent = result === 'victory' ? 'Terminado'
+    : reason === 'eliminated' ? 'Sin vidas' : 'Tiempo agotado';
+  els.timerCard.classList.remove('warning');
+  els.btnEnd.disabled = true;
+  els.btnStart.textContent = 'Finalizado';
+  els.teamCard.classList.add('locked');
+
+  // Cálculo de puntos
+  const hearts = game.players.reduce((sum, p) => sum + p.hearts, 0);
+  const alive = game.players.filter((p) => p.alive).length;
+  const heartPts = hearts * CONFIG.POINTS_PER_HEART;
+  const alivePts = alive * CONFIG.POINTS_PER_ALIVE;
+  const speedPts = calcSpeedPoints(remaining);
+  const total = heartPts + alivePts + speedPts;
+
+  const entry = {
+    id: Date.now(),
+    name: game.name,
+    players: game.players.map((p) => p.name),
+    result,
+    reason,
+    timeUsed: CONFIG.DURATION - remaining,
+    hearts,
+    alive,
+    speed: speedPts,
+    total
+  };
+
+  // Se agrega automáticamente a la tabla
+  state.leaderboard.push(entry);
+  saveLeaderboard();
+  renderLeaderboard(entry.id);
+
+  if (result === 'victory') launchConfetti(); else defeatFlash();
+
+  showResult(entry, { remaining, heartPts, alivePts });
+}
+
+function showResult(entry, { remaining, heartPts, alivePts }) {
+  const win = entry.result === 'victory';
+  els.resultCard.className = `modal-card result-card ${win ? 'win' : 'lose'}`;
+  const eliminated = entry.reason === 'eliminated';
+  els.resultIcon.textContent = win ? '🏆' : eliminated ? '💀' : '⌛';
+  els.resultTitle.textContent = win
+    ? VICTORY_MESSAGES[Math.floor(Math.random() * VICTORY_MESSAGES.length)]
+    : eliminated ? '¡Sin vidas!' : '¡Se acabó el tiempo!';
+  els.resultMsg.textContent = win
+    ? `${entry.name} terminó con ${formatTime(remaining)} de sobra.`
+    : eliminated
+      ? `Todos los jugadores de ${entry.name} perdieron sus vidas y el reloj cayó a 00:00. ¡La próxima será!`
+      : `El reloj llegó a 00:00 y ${entry.name} no alcanzó a terminar. ¡La próxima será!`;
+
+  const rows = [
+    [`Corazones restantes (${entry.hearts} × ${CONFIG.POINTS_PER_HEART})`, heartPts],
+    [`Jugadores vivos (${entry.alive} × ${CONFIG.POINTS_PER_ALIVE})`, alivePts],
+    [`Velocidad (${formatTime(remaining)} restantes)`, entry.speed]
+  ];
+  els.resultBreakdown.innerHTML = '';
+  rows.forEach(([label, pts]) => {
+    const div = document.createElement('div');
+    const a = document.createElement('span');
+    const b = document.createElement('span');
+    a.textContent = label;
+    b.textContent = `+${pts}`;
+    div.append(a, b);
+    els.resultBreakdown.appendChild(div);
+  });
+
+  const full = state.leaderboard.length >= CONFIG.MAX_TEAMS;
+  els.btnNext.textContent = full ? 'Ver tabla final' : 'Siguiente equipo';
+  animateNumber(els.resultTotal, entry.total);
+
+  // Pequeña pausa para que se vea el final en pantalla
+  setTimeout(() => {
+    els.resultModal.classList.remove('hidden');
+    els.btnNext.focus();
+  }, 700);
+}
+
+// Contador animado para el total
+function animateNumber(el, target) {
+  const start = performance.now();
+  const dur = 1200;
+  el.textContent = '0';
+  setTimeout(() => {
+    const step = (now) => {
+      const t = Math.min(1, (performance.now() - start - 700) / dur);
+      if (t < 0) return requestAnimationFrame(step);
+      el.textContent = Math.round(target * (1 - Math.pow(1 - t, 3)));
+      if (t < 1) requestAnimationFrame(step);
+    };
+    requestAnimationFrame(step);
+  }, 0);
+}
+
+function nextTeam() {
+  els.resultModal.classList.add('hidden');
+  showRegisterView();
+  if (state.leaderboard.length >= CONFIG.MAX_TEAMS) {
+    $('boardSection').scrollIntoView({ behavior: 'smooth' });
+  } else {
+    window.scrollTo({ top: 0, behavior: 'smooth' });
+  }
+}
+
+/* =========================================================
+   TABLA DE POSICIONES
+   ========================================================= */
+function renderLeaderboard(highlightId) {
+  const sorted = [...state.leaderboard].sort((a, b) => b.total - a.total || a.timeUsed - b.timeUsed);
+  els.boardCount.textContent = `${state.leaderboard.length}/${CONFIG.MAX_TEAMS}`;
+  els.boardBody.innerHTML = '';
+
+  if (!sorted.length) {
+    els.boardBody.innerHTML = '<tr><td class="empty" colspan="8">Aún no hay equipos registrados.</td></tr>';
+    return;
+  }
+
+  const medals = ['🥇', '🥈', '🥉'];
+  sorted.forEach((t, i) => {
+    const tr = document.createElement('tr');
+    if (t.id === highlightId) tr.className = 'new-row';
+
+    const cells = [
+      { cls: 'pos', text: medals[i] || String(i + 1) },
+      { cls: 'team-cell', team: t },
+      { tag: t.result === 'victory' ? ['win', 'Victoria']
+          : t.reason === 'eliminated' ? ['lose', 'Sin vidas'] : ['lose', 'Derrota'] },
+      { cls: 'num', text: formatTime(t.timeUsed) },
+      { cls: 'num', text: t.hearts },
+      { cls: 'num', text: `${t.alive}/${CONFIG.PLAYERS}` },
+      { cls: 'num', text: `+${t.speed}` },
+      { cls: 'num points', text: t.total }
+    ];
+
+    cells.forEach((c) => {
+      const td = document.createElement('td');
+      if (c.cls) td.className = c.cls;
+      if (c.team) {
+        const strong = document.createElement('strong');
+        const small = document.createElement('small');
+        strong.textContent = c.team.name;
+        small.textContent = c.team.players.join(' · ');
+        td.append(strong, small);
+      } else if (c.tag) {
+        const span = document.createElement('span');
+        span.className = `tag ${c.tag[0]}`;
+        span.textContent = c.tag[1];
+        td.appendChild(span);
+      } else {
+        td.textContent = c.text;
+      }
+      tr.appendChild(td);
+    });
+    els.boardBody.appendChild(tr);
+  });
+}
+
+function resetTournament() {
+  const running = state.current && ['running', 'eliminating'].includes(state.current.status);
+  $('confirmTitle').textContent = running ? 'Partida en curso' : '¿Reiniciar torneo?';
+  $('confirmMsg').textContent = running
+    ? 'Termina la partida actual antes de reiniciar el torneo.'
+    : 'Se borrarán todos los equipos de la tabla de posiciones.';
+  $('btnConfirmYes').classList.toggle('hidden', running);
+  $('btnConfirmNo').textContent = running ? 'Entendido' : 'Cancelar';
+  $('confirmModal').classList.remove('hidden');
+}
+
+function confirmReset() {
+  $('confirmModal').classList.add('hidden');
+  state.leaderboard = [];
+  saveLeaderboard();
+  renderLeaderboard();
+  showRegisterView();
+}
+
+/* =========================================================
+   EFECTOS DE PANTALLA
+   ========================================================= */
+function launchConfetti() {
+  const colors = ['#7c5cff', '#22d3ee', '#2fd48f', '#fbbf24', '#ff3b5c', '#ffffff'];
+  for (let i = 0; i < 110; i++) {
+    const c = document.createElement('span');
+    c.className = 'confetti';
+    c.style.left = `${random(0, 100)}vw`;
+    c.style.background = colors[i % colors.length];
+    c.style.setProperty('--dx', `${random(-120, 120)}px`);
+    c.style.setProperty('--rot', `${random(360, 1080)}deg`);
+    c.style.setProperty('--dur', `${random(2200, 4000)}ms`);
+    c.style.animationDelay = `${random(0, 600)}ms`;
+    els.fxLayer.appendChild(c);
+    setTimeout(() => c.remove(), 4800);
+  }
+}
+
+function defeatFlash() {
+  const f = document.createElement('div');
+  f.className = 'defeat-flash';
+  els.fxLayer.appendChild(f);
+  setTimeout(() => f.remove(), 1300);
+}
+
+/* =========================================================
+   EVENTOS
+   ========================================================= */
+els.btnAddTeam.addEventListener('click', openRegisterModal);
+els.btnCancelRegister.addEventListener('click', closeRegisterModal);
+// Se usa clic + Enter (no 'submit') para que funcione también en vistas previas que bloquean formularios
+$('btnCreateTeam').addEventListener('click', handleRegisterSubmit);
+els.registerForm.addEventListener('keydown', (e) => {
+  if (e.key === 'Enter') { e.preventDefault(); handleRegisterSubmit(); }
+});
+els.btnStart.addEventListener('click', startTimer);
+els.btnEnd.addEventListener('click', () => finishGame('victory')); // Escenario A
+els.btnNext.addEventListener('click', nextTeam);
+els.btnResetAll.addEventListener('click', resetTournament);
+$('btnConfirmYes').addEventListener('click', confirmReset);
+$('btnConfirmNo').addEventListener('click', () => $('confirmModal').classList.add('hidden'));
+
+// Cerrar el formulario con Escape o clic fuera
+document.addEventListener('keydown', (e) => {
+  if (e.key === 'Escape' && !els.registerModal.classList.contains('hidden')) closeRegisterModal();
+});
+els.registerModal.addEventListener('click', (e) => {
+  if (e.target === els.registerModal) closeRegisterModal();
+});
+
+// Aviso si se intenta cerrar la página con una partida en curso
+window.addEventListener('beforeunload', (e) => {
+  if (state.current && ['running', 'eliminating'].includes(state.current.status)) {
+    e.preventDefault();
+    e.returnValue = '';
+  }
+});
+
+/* =========================================================
+   INICIO
+   ========================================================= */
+renderLeaderboard();
+showRegisterView();
+</script>
+</body>
+</html>
