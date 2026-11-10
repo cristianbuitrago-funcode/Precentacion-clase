@@ -46,6 +46,7 @@ main {
   margin: 0 auto;
   padding: 0 16px 60px;
   display: grid;
+  grid-template-columns: minmax(0, 1fr); /* evita que la tabla ensanche la página en celulares */
   gap: 24px;
 }
 
@@ -153,7 +154,7 @@ main {
    ========================================================= */
 .game-grid {
   display: grid;
-  grid-template-columns: 1fr 320px;
+  grid-template-columns: minmax(0, 1fr) 320px;
   gap: 24px;
   align-items: start;
 }
@@ -517,11 +518,379 @@ input.invalid { border-color: var(--danger); }
 @keyframes flash { 0% { opacity: 0; } 20% { opacity: 1; } 100% { opacity: 0; } }
 
 /* =========================================================
-   12. RESPONSIVE Y ACCESIBILIDAD
+   12. HISTORIA: LECTOR DE LA NARRATIVA
+   ========================================================= */
+/* Color de cada dificultad (lo usan el dado, las fichas de reto y los huecos) */
+.lvl-facil   { --lvl: #2fd48f; --lvl-bg: rgba(47, 212, 143, .1); }
+.lvl-medio   { --lvl: #fbbf24; --lvl-bg: rgba(251, 191, 36, .1); }
+.lvl-dificil { --lvl: #ff4d6d; --lvl-bg: rgba(255, 77, 109, .1); }
+.lvl-libre   { --lvl: #22d3ee; --lvl-bg: rgba(34, 211, 238, .1); }
+
+.story-card { margin-top: 24px; display: grid; gap: 16px; }
+.story-head {
+  display: flex;
+  justify-content: space-between;
+  align-items: flex-end;
+  gap: 12px;
+  flex-wrap: wrap;
+}
+.story-head h2 { font-size: 1.5rem; letter-spacing: -.02em; }
+.story-clock {
+  display: flex;
+  align-items: baseline;
+  gap: 8px;
+  padding: 6px 14px;
+  border-radius: 999px;
+  background: var(--bg);
+  border: 1px solid var(--border);
+  font-weight: 800;
+  font-size: 1.1rem;
+  font-variant-numeric: tabular-nums;
+}
+.story-clock small { color: var(--muted); font-size: .72rem; font-weight: 700; text-transform: uppercase; letter-spacing: .1em; }
+.story-clock.warning { color: var(--danger); border-color: rgba(255, 77, 109, .5); }
+
+.story-bar {
+  display: flex;
+  justify-content: space-between;
+  align-items: center;
+  gap: 12px;
+  flex-wrap: wrap;
+}
+.hueco-track { list-style: none; display: flex; gap: 8px; flex-wrap: wrap; }
+.hueco-chip {
+  font: inherit;
+  font-size: .8rem;
+  font-weight: 700;
+  padding: 5px 12px;
+  border-radius: 999px;
+  border: 1px solid var(--border);
+  background: var(--bg);
+  color: var(--muted);
+  cursor: pointer;
+  transition: border-color .2s, color .2s, box-shadow .2s;
+}
+.hueco-chip:disabled { opacity: .4; cursor: default; }
+.hueco-chip.is-rolled { color: var(--text); border-color: var(--accent); }
+.hueco-chip.is-ok { color: var(--success); border-color: rgba(47, 212, 143, .45); }
+.hueco-chip.is-fail { color: var(--danger); border-color: rgba(255, 77, 109, .45); }
+.hueco-chip.is-skipped { text-decoration: line-through; }
+.hueco-chip.is-current { color: var(--text); border-color: var(--accent-2); box-shadow: 0 0 0 3px rgba(34, 211, 238, .18); }
+
+.mode-switch {
+  display: inline-flex;
+  align-items: center;
+  gap: 4px;
+  padding: 4px;
+  border-radius: 12px;
+  background: var(--bg);
+  border: 1px solid var(--border);
+}
+.mode-switch > span { color: var(--muted); font-size: .72rem; font-weight: 700; text-transform: uppercase; letter-spacing: .08em; padding: 0 6px; }
+.mode-btn {
+  border: 0;
+  background: transparent;
+  color: var(--muted);
+  font: inherit;
+  font-size: .85rem;
+  font-weight: 700;
+  padding: 6px 12px;
+  border-radius: 9px;
+  cursor: pointer;
+}
+.mode-btn.active { background: var(--surface-2); color: var(--text); box-shadow: 0 0 0 1px var(--border); }
+.mode-btn:disabled { opacity: .35; cursor: not-allowed; }
+
+.story-body {
+  position: relative;
+  max-height: min(62vh, 640px);
+  overflow-y: auto;
+  display: grid;
+  gap: 12px;
+  padding: 4px 6px 4px 0;
+  overscroll-behavior: contain;
+}
+.sb {
+  border-left: 3px solid transparent;
+  padding: 6px 14px;
+  border-radius: 0 12px 12px 0;
+  transition: opacity .3s ease, background .3s ease, border-color .3s ease;
+}
+.sb.future { display: none; }
+.sb.past { opacity: .5; }
+.sb.past.sb-hueco { opacity: .85; }
+.sb.current { border-left-color: var(--accent-2); background: rgba(34, 211, 238, .06); animation: blockIn .45s ease; }
+.sb-p.past, .sb-section.past, .sb-quote.past, .sb-questions.past { cursor: pointer; }
+.sb-p.past:hover, .sb-section.past:hover, .sb-quote.past:hover, .sb-questions.past:hover { opacity: .8; }
+@keyframes blockIn { from { opacity: 0; transform: translateY(8px); } }
+
+.sb-p, .sb-questions { font-size: 1.12rem; line-height: 1.75; }
+.sb-section { padding-top: 14px; }
+.sb-section h3 { font-size: 1.3rem; letter-spacing: -.01em; }
+.sb-chapter {
+  font-size: .75rem;
+  letter-spacing: .14em;
+  text-transform: uppercase;
+  color: var(--accent);
+  font-weight: 800;
+}
+.sb-quote {
+  font-size: 1.12rem;
+  line-height: 1.75;
+  font-style: italic;
+  margin: 4px 0;
+  padding: 18px 22px;
+  border: 1px solid rgba(124, 92, 255, .35);
+  border-radius: 16px;
+  background: linear-gradient(135deg, rgba(124, 92, 255, .14), rgba(34, 211, 238, .06));
+}
+.sb-quote.current { border-left: 3px solid var(--accent-2); }
+.sb-quote p + p { margin-top: 10px; }
+.sb-quote.special { border-color: rgba(251, 191, 36, .45); background: linear-gradient(135deg, rgba(251, 191, 36, .14), rgba(124, 92, 255, .08)); }
+.sb-questions { padding-left: 36px; display: grid; gap: 6px; }
+
+/* Momento de reto todavía sin resolver */
+.hueco-pending {
+  display: grid;
+  grid-template-columns: auto 1fr auto;
+  align-items: center;
+  gap: 16px;
+  padding: 18px;
+  border-radius: 16px;
+  border: 1px dashed var(--lvl);
+  background: var(--lvl-bg);
+}
+.hueco-icon { font-size: 2.2rem; line-height: 1; }
+.hueco-pending h4 { font-size: 1.15rem; margin: 2px 0 4px; }
+.hueco-note { color: var(--muted); font-size: .9rem; }
+.hueco-skipped {
+  display: flex;
+  justify-content: space-between;
+  align-items: center;
+  gap: 12px;
+  flex-wrap: wrap;
+  padding: 12px 16px;
+  border-radius: 14px;
+  border: 1px dashed var(--border);
+  color: var(--muted);
+}
+
+/* Ficha del reto elegido */
+.reto-card {
+  display: grid;
+  gap: 14px;
+  padding: 18px;
+  border-radius: 16px;
+  border: 1px solid var(--border);
+  border-top: 4px solid var(--lvl);
+  background: var(--bg);
+}
+.reto-head { display: flex; align-items: flex-start; gap: 14px; }
+.reto-num {
+  flex: none;
+  width: 56px; height: 56px;
+  display: grid; place-items: center;
+  border-radius: 14px;
+  border: 2px solid var(--lvl);
+  background: var(--lvl-bg);
+  color: var(--lvl);
+  font-size: 1.5rem;
+  font-weight: 800;
+}
+.reto-title { flex: 1; min-width: 0; }
+.reto-title h4 { font-size: 1.25rem; margin: 2px 0 8px; }
+.reto-tags { display: flex; gap: 6px; flex-wrap: wrap; }
+.reto-tags .tag { background: var(--surface-2); color: var(--muted); }
+.reto-tags .tag.lvl { background: var(--lvl-bg); color: var(--lvl); }
+.reto-label {
+  display: flex;
+  align-items: center;
+  gap: 8px;
+  margin-bottom: 4px;
+  font-size: .75rem;
+  font-weight: 700;
+  text-transform: uppercase;
+  letter-spacing: .08em;
+  color: var(--muted);
+}
+.reto-read p { font-size: 1.08rem; line-height: 1.7; font-style: italic; }
+.reto-cierre { padding: 12px 16px; border-left: 3px solid var(--lvl); border-radius: 0 12px 12px 0; background: var(--lvl-bg); }
+.reto-card details {
+  border: 1px solid var(--border);
+  border-radius: 12px;
+  padding: 10px 14px;
+  background: var(--surface);
+}
+.reto-card details > summary { cursor: pointer; font-weight: 700; color: var(--muted); }
+.reto-card details[open] > summary { color: var(--text); margin-bottom: 8px; }
+.reto-card details ul { padding-left: 22px; margin-bottom: 8px; }
+.reto-card details p + p { margin-top: 8px; }
+.reto-more { display: grid; gap: 12px; }
+.reto-more[open] > summary { margin-bottom: 12px; }
+.muted { color: var(--muted); }
+.reto-actions { display: flex; justify-content: flex-end; gap: 10px; flex-wrap: wrap; }
+.reto-actions.nudge { animation: shake .35s ease 2; }
+.say-btn {
+  width: 30px; height: 30px;
+  display: inline-grid; place-items: center;
+  border-radius: 50%;
+  border: 1px solid var(--border);
+  background: var(--surface-2);
+  font-size: .9rem;
+  cursor: pointer;
+}
+.say-btn:hover { border-color: var(--accent-2); }
+
+.story-end {
+  display: grid;
+  justify-items: start;
+  gap: 10px;
+  padding: 18px;
+  border-radius: 16px;
+  border: 1px solid var(--border);
+  background: var(--bg);
+}
+
+.story-controls { display: flex; align-items: center; gap: 10px; flex-wrap: wrap; }
+.story-controls .spacer { flex: 1; }
+#btnStoryPlay.is-playing { background: linear-gradient(135deg, var(--accent-2), #0ea5c6); color: #03141a; }
+.voice-pick {
+  display: flex;
+  align-items: center;
+  gap: 8px;
+  color: var(--muted);
+  font-size: .75rem;
+  font-weight: 700;
+  text-transform: uppercase;
+  letter-spacing: .08em;
+}
+.voice-pick select {
+  max-width: 220px;
+  padding: 7px 10px;
+  border-radius: 10px;
+  border: 1px solid var(--border);
+  background: var(--bg);
+  color: var(--text);
+  font: inherit;
+  font-size: .85rem;
+  text-transform: none;
+  letter-spacing: 0;
+}
+.story-hint { color: var(--muted); font-size: .85rem; }
+
+/* =========================================================
+   13. DADO DE RETOS
+   ========================================================= */
+.dice-card { max-width: 540px; text-align: center; position: relative; }
+.dice-card h3 { margin: 4px 0 6px; font-size: 1.6rem; }
+.dice-sub { color: var(--muted); }
+.dice-close {
+  position: absolute;
+  top: 14px; right: 14px;
+  width: 36px; height: 36px;
+  border-radius: 50%;
+  border: 1px solid var(--border);
+  background: var(--bg);
+  color: var(--muted);
+  font-size: 1.3rem;
+  line-height: 1;
+  cursor: pointer;
+}
+.dice-close:hover:not(:disabled) { color: var(--text); }
+.dice-close:disabled { opacity: .3; cursor: not-allowed; }
+
+.dice-stage {
+  --d: 120px;
+  position: relative;
+  height: 230px;
+  display: grid;
+  place-items: center;
+  perspective: 900px;
+}
+.die-shadow {
+  position: absolute;
+  bottom: 22px;
+  left: 50%;
+  width: 130px; height: 20px;
+  margin-left: -65px;
+  border-radius: 50%;
+  background: radial-gradient(ellipse, rgba(0, 0, 0, .65), transparent 70%);
+}
+.die-toss, .die-tilt, .die { width: var(--d); height: var(--d); transform-style: preserve-3d; }
+.die-tilt { transform: rotateX(-16deg) rotateY(22deg); }
+.die { position: relative; transition: transform 1.9s cubic-bezier(.16, .84, .24, 1); }
+.face {
+  position: absolute;
+  inset: 0;
+  display: grid;
+  place-content: center;
+  justify-items: center;
+  gap: 2px;
+  border-radius: 20px;
+  border: 2px solid var(--lvl, var(--accent));
+  background: linear-gradient(145deg, #262b3c, #11141c);
+  box-shadow: inset 0 0 26px rgba(0, 0, 0, .55);
+  backface-visibility: hidden;
+  -webkit-backface-visibility: hidden;
+  transition: box-shadow .4s ease;
+}
+.face-lbl { font-size: .68rem; font-weight: 800; letter-spacing: .2em; text-transform: uppercase; color: var(--muted); }
+.face-num { font-size: 3.4rem; font-weight: 800; line-height: 1; color: var(--lvl); }
+.face-word { font-size: 1.25rem; font-weight: 800; letter-spacing: .04em; text-transform: uppercase; color: var(--lvl); }
+.f0 { transform: rotateY(0deg)   translateZ(calc(var(--d) / 2)); }
+.f1 { transform: rotateY(180deg) translateZ(calc(var(--d) / 2)); }
+.f2 { transform: rotateY(90deg)  translateZ(calc(var(--d) / 2)); }
+.f3 { transform: rotateY(-90deg) translateZ(calc(var(--d) / 2)); }
+.f4 { transform: rotateX(90deg)  translateZ(calc(var(--d) / 2)); }
+.f5 { transform: rotateX(-90deg) translateZ(calc(var(--d) / 2)); }
+
+.dice-stage.rolling .die-toss { animation: toss 1.9s cubic-bezier(.3, .6, .3, 1); }
+.dice-stage.rolling .die-shadow { animation: tossShadow 1.9s cubic-bezier(.3, .6, .3, 1); }
+.dice-stage.landed .face { box-shadow: inset 0 0 26px rgba(0, 0, 0, .55), 0 0 28px var(--lvl); }
+@keyframes toss {
+  0%   { transform: translateY(0); }
+  18%  { transform: translateY(-80px); }
+  42%  { transform: translateY(0); }
+  58%  { transform: translateY(-26px); }
+  72%  { transform: translateY(0); }
+  84%  { transform: translateY(-7px); }
+  100% { transform: translateY(0); }
+}
+@keyframes tossShadow {
+  0%, 42%, 72%, 100% { transform: scale(1); opacity: 1; }
+  18% { transform: scale(.55); opacity: .4; }
+  58% { transform: scale(.8); opacity: .7; }
+}
+
+.dice-result { min-height: 86px; display: grid; place-items: center; margin-bottom: 14px; }
+.dice-rolling { color: var(--muted); font-weight: 700; letter-spacing: .1em; text-transform: uppercase; font-size: .85rem; }
+.dice-pick {
+  display: grid;
+  gap: 2px;
+  padding: 12px 20px;
+  border-radius: 14px;
+  border: 1px solid var(--lvl);
+  background: var(--lvl-bg);
+  animation: popIn .35s cubic-bezier(.2, 1.3, .4, 1);
+}
+.dice-pick .eyebrow { color: var(--lvl); }
+.dice-pick strong { font-size: 1.3rem; }
+.dice-pick small { color: var(--muted); }
+.dice-actions, .modal-actions.center { justify-content: center; }
+.result-retos { color: var(--muted); font-size: .92rem; margin: -4px 0 16px; }
+.team-cell small { display: block; }
+
+/* =========================================================
+   14. RESPONSIVE Y ACCESIBILIDAD
    ========================================================= */
 @media (max-width: 820px) {
-  .game-grid { grid-template-columns: 1fr; }
+  .game-grid { grid-template-columns: minmax(0, 1fr); }
   .timer-card { order: -1; }
+}
+@media (max-width: 600px) {
+  .hueco-pending { grid-template-columns: auto 1fr; }
+  .hueco-pending .btn { grid-column: 1 / -1; }
+  .story-controls .spacer { display: none; }
 }
 @media (max-width: 480px) {
   .card { padding: 18px; }
@@ -529,9 +898,19 @@ input.invalid { border-color: var(--danger); }
   .heart { width: 30px; height: 30px; }
   .timer-ring { width: 170px; height: 170px; }
   .timer-text { font-size: 2.5rem; }
+  .sb-p, .sb-questions, .sb-quote { font-size: 1.02rem; }
+  .sb { padding: 6px 8px; }
+  .sb-quote { padding: 14px 16px; }
+  .reto-card { padding: 14px; }
+  .reto-head { flex-wrap: wrap; }
+  .dice-stage { --d: 100px; height: 200px; }
+  .face-num { font-size: 2.8rem; }
+  .face-word { font-size: 1.05rem; }
 }
 @media (prefers-reduced-motion: reduce) {
   .hero .btn-xl, .result-icon, .timer-card.warning .timer-text { animation: none; }
+  .sb.current, .dice-stage.rolling .die-toss, .dice-stage.rolling .die-shadow { animation: none; }
+  .die { transition-duration: .45s; }
 }
 </style>
 </head>
@@ -543,7 +922,7 @@ input.invalid { border-color: var(--danger); }
     <div class="logo" aria-hidden="true">⏳</div>
     <div>
       <h1>Arena Contrarreloj</h1>
-      <p>Gestión de equipos y vidas</p>
+      <p>Equipos, vidas, historia y retos</p>
     </div>
   </div>
   <div class="round-pill" id="roundPill"></div>
@@ -553,7 +932,7 @@ input.invalid { border-color: var(--danger); }
   <!-- ================= VISTA: REGISTRO ================= -->
   <section id="registerView" class="card hero">
     <h2>Registra al siguiente equipo</h2>
-    <p>4 jugadores · 5 vidas cada uno · 10 minutos en el reloj</p>
+    <p>4 jugadores · 5 vidas cada uno · 10 minutos en el reloj · retos sorteados con dado</p>
     <button id="btnAddTeam" class="btn btn-primary btn-xl" type="button">+ Añadir equipo</button>
     <p id="registerNote" class="note"></p>
   </section>
@@ -596,8 +975,43 @@ input.invalid { border-color: var(--danger); }
         <div class="timer-actions">
           <button id="btnStart" class="btn btn-success" type="button">▶ Iniciar</button>
           <button id="btnEnd" class="btn btn-danger" type="button" disabled>■ Terminar</button>
+          <button id="btnShowResult" class="btn btn-primary hidden" type="button">🏆 Ver resultado</button>
         </div>
       </div>
+    </div>
+
+    <!-- ================= HISTORIA: LECTOR DE LA NARRATIVA ================= -->
+    <div class="card story-card" id="storyCard">
+      <div class="story-head">
+        <div>
+          <span class="eyebrow">Historia</span>
+          <h2>📖 Nadie escapa solo</h2>
+        </div>
+        <div class="story-clock" id="storyClock" title="Tiempo restante">
+          <span>⏱ <span id="storyClockText">10:00</span></span>
+          <small id="storyClockLabel">Listo</small>
+        </div>
+      </div>
+
+      <div class="story-bar">
+        <ol class="hueco-track" id="huecoTrack" aria-label="Momentos de reto de la historia"></ol>
+        <div class="mode-switch" id="modeSwitch" role="group" aria-label="Orden de los retos">
+          <span>Orden</span>
+          <button type="button" class="mode-btn active" data-mode="progresivo" title="Fácil → medio → difícil → libre → caja fuerte">Progresivo</button>
+          <button type="button" class="mode-btn" data-mode="caotico" title="El dado decide también la dificultad de cada reto">Caótico</button>
+        </div>
+      </div>
+
+      <div class="story-body" id="storyBody"></div>
+
+      <div class="story-controls">
+        <button id="btnStoryPrev" class="btn btn-ghost btn-sm" type="button">◀ Anterior</button>
+        <button id="btnStoryPlay" class="btn btn-primary" type="button">🔊 Leer en voz alta</button>
+        <button id="btnStoryNext" class="btn btn-ghost" type="button">Siguiente ▶</button>
+        <span class="spacer"></span>
+        <label class="voice-pick hidden" id="voicePick">Voz <select id="voiceSelect"></select></label>
+      </div>
+      <p class="story-hint" id="storyHint"></p>
     </div>
   </section>
 
@@ -655,6 +1069,38 @@ input.invalid { border-color: var(--danger); }
   </div>
 </div>
 
+<!-- ================= MODAL: DADO DE RETOS ================= -->
+<div id="diceModal" class="modal hidden" role="dialog" aria-modal="true" aria-labelledby="diceTitle">
+  <div class="modal-card dice-card">
+    <button type="button" class="dice-close" id="btnDiceClose" aria-label="Cerrar el dado">×</button>
+    <span class="eyebrow" id="diceEyebrow"></span>
+    <h3 id="diceTitle">¡Hora del reto!</h3>
+    <p class="dice-sub" id="diceSub"></p>
+    <div class="dice-stage" id="diceStage" aria-hidden="true">
+      <div class="die-shadow"></div>
+      <div class="die-toss">
+        <div class="die-tilt">
+          <div class="die" id="die">
+            <div class="face f0"></div>
+            <div class="face f1"></div>
+            <div class="face f2"></div>
+            <div class="face f3"></div>
+            <div class="face f4"></div>
+            <div class="face f5"></div>
+          </div>
+        </div>
+      </div>
+    </div>
+    <div class="dice-result" id="diceResult" aria-live="polite"></div>
+    <div class="modal-actions dice-actions">
+      <button type="button" class="btn btn-ghost" id="btnDiceSkip" title="Seguir la historia sin hacer este reto">Saltar</button>
+      <button type="button" class="btn btn-ghost hidden" id="btnDiceReroll" title="Descarta este reto y lanza de nuevo">↻ Otro reto</button>
+      <button type="button" class="btn btn-primary" id="btnDiceRoll">🎲 Lanzar el dado</button>
+      <button type="button" class="btn btn-success hidden" id="btnDiceGo">Ver el reto ▸</button>
+    </div>
+  </div>
+</div>
+
 <!-- ================= MODAL: RESULTADO ================= -->
 <div id="resultModal" class="modal hidden" role="dialog" aria-modal="true" aria-labelledby="resultTitle">
   <div class="modal-card result-card" id="resultCard">
@@ -662,8 +1108,12 @@ input.invalid { border-color: var(--danger); }
     <h3 id="resultTitle"></h3>
     <p class="result-msg" id="resultMsg"></p>
     <div class="breakdown" id="resultBreakdown"></div>
+    <p class="result-retos hidden" id="resultRetos"></p>
     <div class="total">Puntuación total<strong id="resultTotal">0</strong></div>
-    <button id="btnNext" class="btn btn-primary" type="button">Siguiente equipo</button>
+    <div class="modal-actions center">
+      <button id="btnBackStory" class="btn btn-ghost" type="button">📖 Volver a la historia</button>
+      <button id="btnNext" class="btn btn-primary" type="button">Siguiente equipo</button>
+    </div>
   </div>
 </div>
 
@@ -755,8 +1205,38 @@ const els = {
   resultMsg: $('resultMsg'),
   resultBreakdown: $('resultBreakdown'),
   resultTotal: $('resultTotal'),
+  resultRetos: $('resultRetos'),
   btnNext: $('btnNext'),
-  fxLayer: $('fxLayer')
+  btnBackStory: $('btnBackStory'),
+  btnShowResult: $('btnShowResult'),
+  fxLayer: $('fxLayer'),
+  // Historia
+  storyBody: $('storyBody'),
+  storyClock: $('storyClock'),
+  storyClockText: $('storyClockText'),
+  storyClockLabel: $('storyClockLabel'),
+  huecoTrack: $('huecoTrack'),
+  modeSwitch: $('modeSwitch'),
+  btnStoryPrev: $('btnStoryPrev'),
+  btnStoryPlay: $('btnStoryPlay'),
+  btnStoryNext: $('btnStoryNext'),
+  voicePick: $('voicePick'),
+  voiceSelect: $('voiceSelect'),
+  storyHint: $('storyHint'),
+  // Dado
+  diceModal: $('diceModal'),
+  diceEyebrow: $('diceEyebrow'),
+  diceTitle: $('diceTitle'),
+  diceSub: $('diceSub'),
+  diceStage: $('diceStage'),
+  die: $('die'),
+  dieFaces: [...document.querySelectorAll('#die .face')],
+  diceResult: $('diceResult'),
+  btnDiceRoll: $('btnDiceRoll'),
+  btnDiceReroll: $('btnDiceReroll'),
+  btnDiceGo: $('btnDiceGo'),
+  btnDiceSkip: $('btnDiceSkip'),
+  btnDiceClose: $('btnDiceClose')
 };
 
 const RING_LENGTH = 2 * Math.PI * 88; // Circunferencia del anillo del cronómetro
@@ -788,6 +1268,7 @@ function saveLeaderboard() {
    VISTA DE REGISTRO
    ========================================================= */
 function showRegisterView() {
+  stopStory();
   state.current = null;
   els.gameView.classList.add('hidden');
   els.registerView.classList.remove('hidden');
@@ -877,6 +1358,7 @@ function startTeam(name, playerNames) {
   updateTeamStats();
   resetTimerUI();
   updateRoundPill();
+  resetStory();
 }
 
 // Crea las filas de jugadores con sus 5 corazones
@@ -1082,6 +1564,7 @@ function resetTimerUI() {
   els.btnStart.disabled = false;
   els.btnStart.textContent = '▶ Iniciar';
   els.btnEnd.disabled = true;
+  els.btnShowResult.classList.add('hidden');
 }
 
 function startTimer() {
@@ -1122,7 +1605,9 @@ function calcSpeedPoints(remainingSecs) {
   return Math.min(CONFIG.SPEED_MAX, Math.max(CONFIG.SPEED_MIN, points));
 }
 
-function finishGame(result, reason = result) {
+// defer: registra el resultado pero no abre la ventana de puntaje
+// (se usa al abrir la caja fuerte, para poder terminar de leer la historia)
+function finishGame(result, reason = result, { defer = false } = {}) {
   const game = state.current;
   if (!game || !['running', 'eliminating'].includes(game.status)) return;
 
@@ -1156,7 +1641,9 @@ function finishGame(result, reason = result) {
     hearts,
     alive,
     speed: speedPts,
-    total
+    total,
+    // Retos que sacó el dado en esta partida (ok: true superado, false no superado, null sin marcar)
+    retos: story.huecos.filter((hs) => hs.reto).map((hs) => ({ n: hs.reto, ok: hs.ok }))
   };
 
   // Se agrega automáticamente a la tabla
@@ -1166,10 +1653,22 @@ function finishGame(result, reason = result) {
 
   if (result === 'victory') launchConfetti(); else defeatFlash();
 
-  showResult(entry, { remaining, heartPts, alivePts });
+  els.btnShowResult.classList.remove('hidden');
+  showResult(entry, { remaining, heartPts, alivePts }, defer);
+  renderStoryEnd();
 }
 
-function showResult(entry, { remaining, heartPts, alivePts }) {
+function retosSummary(retos) {
+  return retos.map((r) => `#${r.n}${r.ok === true ? ' ✔' : r.ok === false ? ' ✖' : ''}`).join(' · ');
+}
+
+function openResultModal() {
+  if (!state.current || state.current.status !== 'finished') return;
+  els.resultModal.classList.remove('hidden');
+  els.btnNext.focus();
+}
+
+function showResult(entry, { remaining, heartPts, alivePts }, defer = false) {
   const win = entry.result === 'victory';
   els.resultCard.className = `modal-card result-card ${win ? 'win' : 'lose'}`;
   const eliminated = entry.reason === 'eliminated';
@@ -1199,15 +1698,21 @@ function showResult(entry, { remaining, heartPts, alivePts }) {
     els.resultBreakdown.appendChild(div);
   });
 
+  const hasRetos = entry.retos && entry.retos.length;
+  els.resultRetos.classList.toggle('hidden', !hasRetos);
+  els.resultRetos.textContent = hasRetos ? `🎲 Retos jugados: ${retosSummary(entry.retos)}` : '';
+
   const full = state.leaderboard.length >= CONFIG.MAX_TEAMS;
   els.btnNext.textContent = full ? 'Ver tabla final' : 'Siguiente equipo';
+
+  if (defer) {
+    els.resultTotal.textContent = entry.total;
+    return;
+  }
   animateNumber(els.resultTotal, entry.total);
 
   // Pequeña pausa para que se vea el final en pantalla
-  setTimeout(() => {
-    els.resultModal.classList.remove('hidden');
-    els.btnNext.focus();
-  }, 700);
+  setTimeout(openResultModal, 700);
 }
 
 // Contador animado para el total
@@ -1275,6 +1780,11 @@ function renderLeaderboard(highlightId) {
         strong.textContent = c.team.name;
         small.textContent = c.team.players.join(' · ');
         td.append(strong, small);
+        if (c.team.retos && c.team.retos.length) {
+          const retos = document.createElement('small');
+          retos.textContent = `🎲 Retos ${retosSummary(c.team.retos)}`;
+          td.appendChild(retos);
+        }
       } else if (c.tag) {
         const span = document.createElement('span');
         span.className = `tag ${c.tag[0]}`;
@@ -1335,6 +1845,1092 @@ function defeatFlash() {
 }
 
 /* =========================================================
+   RETOS (tomados del «Manual de los 12 retos»)
+   ========================================================= */
+const RETOS = [
+  {
+    "n": 1,
+    "titulo": "El documento desordenado",
+    "dificultad": "facil",
+    "categoria": "Lógico · Word y escritura",
+    "tiempo": "2–3 minutos",
+    "intro": "En medio de todo lo que está ocurriendo, aparece un documento con información importante, pero está completamente desordenado. A veces, como en un salón de clases, tener las piezas no es suficiente: también necesitamos saber cómo organizarlas. Su misión es poner cada parte en su lugar.",
+    "materiales": [
+      "Cuatro tiras de papel con las frases indicadas abajo.",
+      "Una mesa o superficie donde puedan ordenar las tiras."
+    ],
+    "preparacion": "Escribe una frase en cada tira: A: «Finalmente, el equipo compartió sus ideas». B: «Mateo llegó por primera vez al salón». C: «Al principio, nadie sabía cómo incluirlo». D: «Sofía y Leo le preguntaron qué le gustaba». Mézclalas antes de entregarlas.",
+    "instrucciones": "Los participantes deben ordenar las cuatro tiras para formar una historia coherente. Después, deben proponer un título e indicar dónde comenzaría un nuevo párrafo. Relaciona la actividad con la organización de un documento en Word.",
+    "solucion": "B → C → D → A. Un título posible es «Una nueva amistad».",
+    "aprendizaje": "Orden lógico de ideas, secuencia narrativa, títulos y párrafos en un documento.",
+    "pista": "Pregunta: «¿Qué tendría que ocurrir primero para que las demás acciones tengan sentido?»",
+    "cierre": "¡Documento organizado! Cada fragmento tenía su lugar, pero solo al unirlos apareció el sentido completo. Recuerden esta idea: una parte puede parecer pequeña por sí sola, pero puede ser fundamental para comprender toda la historia."
+  },
+  {
+    "n": 2,
+    "titulo": "La secuencia del videojuego",
+    "dificultad": "facil",
+    "categoria": "Memoria · Videojuegos",
+    "tiempo": "1,5–2 minutos",
+    "intro": "La Arena acaba de activar una secuencia de colores. Parece sencilla, pero si alguien pierde el orden, el equipo tendrá que intentarlo de nuevo. Como en un videojuego, prestar atención a los detalles puede marcar la diferencia entre avanzar y quedarse en el mismo nivel.",
+    "materiales": [
+      "Cuatro tarjetas de colores: azul, rojo, verde y amarillo.",
+      "Una hoja o carpeta para ocultar las tarjetas después de mostrarlas."
+    ],
+    "preparacion": "Prepara la secuencia azul → rojo → verde → amarillo. Ten las tarjetas listas para mostrarlas durante cinco segundos.",
+    "instrucciones": "Muestra la secuencia durante cinco segundos y luego ocúltala. Los jugadores deben reconstruirla en el mismo orden. Si el grupo necesita más dificultad, añade un color adicional.",
+    "solucion": "Azul → rojo → verde → amarillo.",
+    "aprendizaje": "Memoria de trabajo, atención, secuenciación y patrones, conceptos presentes en muchos videojuegos y programas.",
+    "pista": "Pregunta: «¿Qué color recuerdan que apareció justo después del azul?»",
+    "cierre": "¡Nivel superado! La secuencia estaba delante de ustedes, pero necesitaban observar y recordar. En esta misión, como en cualquier juego, no siempre gana quien actúa más rápido, sino quien presta atención y sabe cuándo necesita apoyarse en su equipo."
+  },
+  {
+    "n": 3,
+    "titulo": "El robot que no puede ver",
+    "dificultad": "facil",
+    "categoria": "Comunicación · Algoritmos",
+    "tiempo": "2–3 minutos",
+    "intro": "La Arena ha enviado un robot a una zona desconocida. El problema es que no puede ver el camino y solo entiende instrucciones claras. Si recibe indicaciones incompletas o confusas, no llegará a su destino. Ahora ustedes serán su sistema de navegación.",
+    "materiales": [
+      "Una cuadrícula de papel con casillas.",
+      "Una ficha para representar al robot.",
+      "Una ficha o símbolo que marque la meta.",
+      "Obstáculos opcionales."
+    ],
+    "preparacion": "Dibuja una cuadrícula sencilla de 4 × 4. Marca un inicio y una meta. Antes de la actividad, comprueba una ruta válida y escribe las instrucciones correctas para esa cuadrícula.",
+    "instrucciones": "Un participante da las instrucciones y otro mueve la ficha una casilla por vez. El robot solo puede hacer lo que se le indica: avanzar, retroceder o girar según las reglas que hayas definido. El equipo debe llegar a la meta sin saltarse pasos.",
+    "solucion": "La secuencia exacta depende de la cuadrícula preparada. Asegúrate de tener una ruta correcta antes de comenzar.",
+    "aprendizaje": "Algoritmos, secuencias, precisión en las instrucciones y detección de errores.",
+    "pista": "Pide al equipo que indique una acción a la vez y compruebe la posición del robot después de cada movimiento.",
+    "cierre": "¡El robot llegó a su destino! No necesitaba que le gritaran más fuerte, sino que le explicaran mejor. En tecnología y en la vida cotidiana, una buena comunicación puede resolver problemas que parecían imposibles."
+  },
+  {
+    "n": 4,
+    "titulo": "El archivo perdido",
+    "dificultad": "facil",
+    "categoria": "Lógico · Archivos digitales",
+    "tiempo": "1,5–2 minutos",
+    "intro": "Entre los archivos de la misión hay documentos, imágenes y hojas de cálculo mezclados. La Arena necesita encontrar el archivo correcto, pero nadie puede abrir una puerta digital si no sabe qué está buscando. Es momento de poner orden en el caos.",
+    "materiales": [
+      "Tarjetas con nombres de archivos.",
+      "Tarjetas con las funciones de cada tipo de archivo."
+    ],
+    "preparacion": "Prepara las parejas: informe.docx → documento de texto; inventario.xlsx → hoja de cálculo; retrato.jpg → imagen; dibujo.png → imagen.",
+    "instrucciones": "Los participantes deben emparejar cada archivo con su función y responder cuál elegirían para escribir un informe, organizar cantidades en una tabla o guardar una imagen.",
+    "solucion": ".docx se usa habitualmente para documentos de Word; .xlsx para hojas de cálculo de Excel; .jpg y .png para imágenes.",
+    "aprendizaje": "Extensiones de archivo y selección del tipo de archivo según la tarea.",
+    "pista": "Pregunta qué herramienta elegirían para escribir texto, calcular cantidades o guardar una fotografía.",
+    "cierre": "¡Archivos identificados! Ahora saben que el nombre de un archivo no es solo una etiqueta: su extensión ayuda a reconocer el tipo de contenido. En esta misión, identificar correctamente una pieza puede ahorrar tiempo y evitar errores."
+  },
+  {
+    "n": 5,
+    "titulo": "El cubo de las instrucciones cruzadas",
+    "dificultad": "medio",
+    "categoria": "Manipulación · Secuencias",
+    "tiempo": "2–3 minutos",
+    "intro": "La siguiente pista está protegida por un objeto lleno de colores. No basta con moverlo al azar: cada movimiento cambia su estado y puede acercarlos o alejarlos del objetivo. Antes de actuar, tendrán que ponerse de acuerdo sobre qué movimiento realizar.",
+    "materiales": [
+      "Un cubo de Rubik.",
+      "Una tarjeta con el patrón final que deben conseguir.",
+      "Una secuencia de movimientos comprobada previamente."
+    ],
+    "preparacion": "Elige un objetivo alcanzable y comprueba la secuencia antes de la actividad. Coloca el cubo en el estado inicial correcto. No pidas resolver un cubo completo desde cero en dos minutos.",
+    "instrucciones": "Un jugador lee los movimientos en voz alta y otro manipula el cubo. Los demás verifican que se sigan en orden. El grupo debe alcanzar el patrón o estado indicado.",
+    "solucion": "Depende del patrón y del estado inicial que hayas preparado. Registra la secuencia correcta en la tarjeta del facilitador.",
+    "aprendizaje": "Secuencias, orientación espacial, planificación y colaboración.",
+    "pista": "Pide que pausen, revisen el último movimiento y comparen el cubo con el patrón objetivo.",
+    "cierre": "¡El cubo ha respondido a sus instrucciones! Cada movimiento tenía consecuencias, y coordinarse fue tan importante como saber qué hacer. A veces, avanzar no consiste en moverse más, sino en elegir el movimiento adecuado."
+  },
+  {
+    "n": 6,
+    "titulo": "La cuenta regresiva",
+    "dificultad": "medio",
+    "categoria": "Matemático · Excel",
+    "tiempo": "2–3 minutos",
+    "intro": "La Arena ha encontrado una tabla de suministros, pero los valores no están completos. Si el equipo calcula mal las cantidades, no sabrá qué recursos tiene disponibles. Es hora de convertir los datos en una respuesta.",
+    "materiales": [
+      "Una tabla impresa que simule una hoja de cálculo.",
+      "Lápices o marcadores."
+    ],
+    "preparacion": "Prepara la tabla: Cuaderno, precio 4, cantidad 3, total ?; Lápiz, precio 2, cantidad 5, total ?. Usa unidades o puntos ficticios para que los números sean sencillos.",
+    "instrucciones": "Calculen el total de cada fila multiplicando precio por cantidad y después sumen ambos resultados. Si quieres, muestra cómo se escribiría la operación en Excel.",
+    "solucion": "Cuadernos: 4 × 3 = 12. Lápices: 2 × 5 = 10. Total general: 22. Si el precio está en B2 y la cantidad en C2, la fórmula sería =B2*C2.",
+    "aprendizaje": "Filas, columnas, celdas, multiplicación y fórmulas sencillas de Excel.",
+    "pista": "Pide que calculen primero cada fila por separado y después sumen los dos resultados.",
+    "cierre": "¡Los números cuadran! Una tabla bien organizada permite convertir datos en decisiones. Excel puede hacer esos cálculos automáticamente, pero primero necesitamos comprender qué representan los números y qué operación corresponde realizar."
+  },
+  {
+    "n": 7,
+    "titulo": "El inventario incompleto",
+    "dificultad": "medio",
+    "categoria": "Memoria · Organización de datos",
+    "tiempo": "2–3 minutos",
+    "intro": "Alguien ha consultado el inventario de la misión y después ha retirado la lista original. Quedan unos segundos para recordar qué objetos estaban registrados. La memoria ayuda, pero también es importante fijarse en cómo se organizaba la información.",
+    "materiales": [
+      "Ocho tarjetas con objetos, dibujos o nombres.",
+      "Una tabla vacía con categorías, por ejemplo: herramientas, documentos y materiales."
+    ],
+    "preparacion": "Prepara ocho objetos fáciles de distinguir. Define de antemano en qué categoría va cada uno. Muestra las tarjetas durante diez segundos.",
+    "instrucciones": "Oculta las tarjetas y entrega una tabla con espacios vacíos. Los participantes deben escribir o nombrar los objetos que recuerdan y ubicarlos en la categoría correcta. Define previamente cuántos aciertos se necesitan para superar el reto.",
+    "solucion": "La lista y la clasificación dependen de las ocho tarjetas preparadas. Conserva una clave de respuestas para verificar los aciertos.",
+    "aprendizaje": "Memoria, clasificación y organización de datos en tablas.",
+    "pista": "Pregunta qué objetos pertenecían a la misma categoría y qué detalles recuerdan de su posición.",
+    "cierre": "¡Inventario reconstruido! Recordar cada detalle no siempre es fácil, pero clasificar y relacionar la información ayuda a recuperarla. En equipo, una persona puede recordar algo que otra pasó por alto."
+  },
+  {
+    "n": 8,
+    "titulo": "El mensaje que nadie entiende",
+    "dificultad": "medio",
+    "categoria": "Comunicación · Escritura",
+    "tiempo": "2–3 minutos",
+    "intro": "Ha llegado un mensaje urgente, pero está escrito de forma confusa. Las palabras están ahí, aunque su significado se pierde entre errores y frases mal construidas. Para avanzar, deberán reconstruir el mensaje sin cambiar lo que realmente quiere decir.",
+    "materiales": [
+      "Una tira de papel con el texto sin puntuación.",
+      "Lápices o marcadores."
+    ],
+    "preparacion": "Escribe: «mateo trajo dibujos de saturno sofia y leo escucharon sus ideas y juntos hicieron un mejor modelo».",
+    "instrucciones": "Añadan mayúsculas, signos de puntuación y separación en oraciones. Después, expliquen en una frase qué ocurrió.",
+    "solucion": "Una solución posible: «Mateo trajo dibujos de Saturno. Sofía y Leo escucharon sus ideas y juntos hicieron un mejor modelo». Se aceptan otras puntuaciones que conserven un sentido coherente.",
+    "aprendizaje": "Redacción, mayúsculas, puntuación, claridad y revisión de textos.",
+    "pista": "Pregunta dónde termina una idea y dónde empieza la siguiente; recuerda que los nombres propios llevan mayúscula.",
+    "cierre": "¡Mensaje recuperado! Las palabras no cambiaron demasiado, pero ahora la idea se entiende con claridad. Expresarnos bien no consiste en usar palabras difíciles, sino en ayudar a los demás a comprender lo que queremos comunicar."
+  },
+  {
+    "n": 9,
+    "titulo": "La matriz de las pistas ocultas",
+    "dificultad": "dificil",
+    "categoria": "Lógico · Análisis de datos",
+    "tiempo": "3–4 minutos",
+    "intro": "La Arena ha detectado una contradicción en los registros de la misión. Hay tres posibles rutas, tres códigos y varias pistas repartidas entre los jugadores. Ninguna pista basta por sí sola. Tendrán que comparar los datos, descartar posibilidades y justificar su decisión.",
+    "materiales": [
+      "Una tabla con tres rutas.",
+      "Cuatro tarjetas de pistas, una por jugador."
+    ],
+    "preparacion": "Prepara la tabla: Ruta A, código 314, rojo; Ruta B, código 527, azul; Ruta C, código 681, verde. Reparte las pistas: jugador 1: «La ruta correcta no es la A»; jugador 2: «El código correcto es mayor que 500»; jugador 3: «El color correcto no es verde»; jugador 4: «La ruta correcta no es la C».",
+    "instrucciones": "Cada jugador lee su pista y el grupo compara las opciones. Deben escoger la única ruta que cumpla todas las condiciones.",
+    "solucion": "Ruta B, código 527, color azul.",
+    "aprendizaje": "Razonamiento lógico, eliminación de opciones, lectura de tablas y puesta en común de información.",
+    "pista": "Primero descarten las rutas A y C con las pistas correspondientes; después comprueben el código y el color.",
+    "cierre": "¡La contradicción ha sido resuelta! Ninguna persona tenía la respuesta completa, pero al reunir las pistas pudieron descartar las opciones incorrectas. Analizar información también significa escuchar a los demás y comprobar que las conclusiones tengan sentido."
+  },
+  {
+    "n": 10,
+    "titulo": "Desactivación de la bomba simulada",
+    "dificultad": "dificil",
+    "categoria": "Manipulación · Arduino",
+    "tiempo": "3–4 minutos",
+    "intro": "¡Alerta en la Arena! Un dispositivo de entrenamiento ha iniciado una cuenta regresiva. No es una bomba real: es una simulación electrónica diseñada para comprobar si el equipo puede seguir instrucciones precisas bajo presión. Cada jugador posee una parte del procedimiento y deberán coordinarse antes de que termine el tiempo.",
+    "materiales": [
+      "Un montaje educativo de Arduino de baja tensión con botones y luces LED, o una maqueta de cartón con botones simulados.",
+      "Cuatro tarjetas con instrucciones."
+    ],
+    "preparacion": "Define una secuencia para el dispositivo y prográmala o prepara la maqueta para aceptarla. Tarjetas de ejemplo: jugador 1: «La primera luz debe ser verde»; jugador 2: «Después debe encenderse la luz azul»; jugador 3: «La luz roja debe permanecer apagada»; jugador 4: «El botón de confirmación se pulsa al final». Comprueba que el montaje coincida con estas reglas.",
+    "instrucciones": "Los jugadores comparten las instrucciones, acuerdan el orden y reproducen la secuencia en el dispositivo preparado. La actividad es una simulación educativa; no hay explosivos ni mecanismos peligrosos.",
+    "solucion": "Verde → azul; la luz roja permanece apagada; confirmación al final. Ajusta el montaje para que esa sea la secuencia válida.",
+    "aprendizaje": "Entradas (botones), salidas (LED), secuencias y lógica básica de un sistema electrónico.",
+    "pista": "Pide que lean las cuatro tarjetas en voz alta y que separen las instrucciones de orden de las condiciones que deben mantenerse.",
+    "cierre": "¡Simulación completada! El dispositivo respondió porque el equipo siguió un procedimiento y coordinó cada acción. En programación y electrónica, un pequeño error puede cambiar el resultado; por eso necesitamos instrucciones claras, pruebas y colaboración."
+  },
+  {
+    "n": 11,
+    "titulo": "El secreto escondido de Kitty",
+    "dificultad": "dificil",
+    "categoria": "Comunicación · Mensaje oculto",
+    "tiempo": "3–4 minutos",
+    "intro": "Entre los objetos de la Arena ha aparecido un artículo de Kitty que parece no tener nada especial. Sin embargo, alguien dejó un mensaje que no se puede leer a simple vista. Para descubrirlo, deberán observar con atención, interpretar las pistas y compartir sus conclusiones.",
+    "materiales": [
+      "Un objeto de Kitty o una imagen que lo represente.",
+      "Una hoja preparada con un mensaje invisible con zumo de limón.",
+      "Una pista que indique dónde buscar el mensaje.",
+      "Una copia visible de respaldo o método de revelación seguro preparado por el facilitador."
+    ],
+    "preparacion": "Escribe previamente «ESCUCHEN A LOS CUATRO» en la hoja con zumo de limón y deja que se seque. No permitas que los estudiantes calienten el papel ni usen llamas. Prepara una copia visible o un método seguro supervisado para revelar el mensaje. Opcionalmente, reparte las cuatro palabras en tarjetas diferentes.",
+    "instrucciones": "Los jugadores buscan la hoja, observan que contiene un mensaje invisible y solicitan la revelación segura al facilitador. Luego interpretan el mensaje. Si usas cuatro tarjetas, cada participante aporta una parte y deben unirlas.",
+    "solucion": "«ESCUCHEN A LOS CUATRO». El mensaje indica que todos los jugadores tienen información valiosa.",
+    "aprendizaje": "Observación, interpretación de pistas, comunicación y participación inclusiva.",
+    "pista": "Dirige la atención hacia la hoja indicada por la pista y recuerda que no deben intentar revelar el mensaje con fuego.",
+    "cierre": "¡El secreto ha salido a la luz! Lo que parecía una hoja vacía contenía una idea que necesitaba ser descubierta. En ocasiones, las personas también guardan ideas que nadie conoce porque no encuentran el espacio para expresarlas. Escuchar puede revelar mucho más de lo que imaginamos."
+  },
+  {
+    "n": 12,
+    "titulo": "La caja fuerte: nadie escapa solo",
+    "dificultad": "dificil",
+    "categoria": "Lógico · Código final",
+    "tiempo": "3–4 minutos",
+    "intro": "Han llegado al último obstáculo de la Arena Contrarreloj. Frente a ustedes está la caja fuerte, pero su combinación no aparece escrita en ningún lugar. Para encontrarla, deberán reunir las pistas que tienen, escuchar cada explicación y comprobar que todos estén de acuerdo con la respuesta final.",
+    "materiales": [
+      "Una caja fuerte con combinación o una caja cerrada con candado de combinación.",
+      "Cuatro tarjetas de pistas, una para cada jugador."
+    ],
+    "preparacion": "Para una combinación de cuatro dígitos, prepara estas pistas: jugador 1: «El primer dígito es 4»; jugador 2: «El segundo dígito es el doble de 3»; jugador 3: «El tercer dígito es la mitad de 10»; jugador 4: «El código tiene cuatro dígitos y el último es 5». Configura la caja en 4635. Si quieres integrar resultados de retos previos, cambia las pistas y la combinación para que coincidan.",
+    "instrucciones": "Cada jugador comparte su pista. El equipo calcula los dígitos, verifica el orden y prueba el código. No permitas que un solo participante acapare todas las tarjetas: el objetivo es que las cuatro personas aporten.",
+    "solucion": "4635.",
+    "aprendizaje": "Deducción, cálculo sencillo, integración de pistas y cooperación.",
+    "pista": "Pide que cada jugador diga qué dígito aporta su pista y que el equipo confirme el orden antes de probar el código.",
+    "cierre": "¡La caja fuerte está abierta! Pero la verdadera victoria no es el código ni lo que hay dentro: es haber llegado hasta aquí sin dejar de escuchar a los demás. Mateo, Sofía y Leo descubrieron que las diferencias no tienen por qué separarnos. En la Arena Contrarreloj, nadie escapa solo."
+  }
+];
+const RETO_BY_N = Object.fromEntries(RETOS.map((r) => [r.n, r]));
+
+const NIVELES = {
+  facil:   { label: 'Fácil' },
+  medio:   { label: 'Medio' },
+  dificil: { label: 'Difícil' }
+};
+const NIVEL_KEYS = Object.keys(NIVELES);
+
+/* Momentos de reto (los «puntos de inserción de puzle» de la narrativa).
+   nivel: dificultad que usa el dado en el orden progresivo.
+          'libre' = el dado decide primero la dificultad y luego el reto.
+   fijo:  número de reto que siempre va en ese momento (no se lanza el dado). */
+const HUECOS = [
+  { nivel: 'facil',   nota: 'Reto de organización, observación o identificación de información. Su solución permite que la historia continúe.' },
+  { nivel: 'medio',   nota: 'Reto para compartir instrucciones, escuchar a otro participante o combinar información.' },
+  { nivel: 'dificil', nota: 'Reto con la información repartida entre los cuatro jugadores. Su solución da una pista para continuar la misión.' },
+  { nivel: 'libre',   nota: 'Reto de dificultad libre que exige combinar dos o más pistas para avanzar hacia la etapa final.' },
+  { fijo: 12,         nota: 'Reto final: deducir la combinación de la caja fuerte a partir de las pistas anteriores.' }
+];
+// Los retos reservados para un momento fijo nunca salen en el dado
+const RETOS_FIJOS = new Set(HUECOS.filter((h) => h.fijo).map((h) => h.fijo));
+
+/* =========================================================
+   NARRATIVA: «Arena Contrarreloj: nadie escapa solo»
+   Cada capítulo tiene bloques: texto (string), { cita: [...] },
+   { preguntas: [...] } o { hueco: n } (momento de reto).
+   ========================================================= */
+const HISTORIA = [
+  {
+    titulo: 'Inicio: un salón dividido',
+    bloques: [
+      'Desde que comenzó mi etapa escolar, adaptarme a los grupos sociales fue complicado. Durante varios años sentí que no encajaba con mis compañeros, pues la convivencia con ellos no siempre era agradable. Cuando llegué a mi segundo colegio, decidí mostrarme con más seguridad y, desde el primer día, encontré un grupo de amigos con quienes me sentí identificado y que hasta hoy siguen siendo importantes para mí.',
+      'Sin embargo, con el tiempo comprendí algo: aunque había encontrado mi lugar, los grupos sociales estaban muy marcados. Cada grupo permanecía con sus propios amigos y las relaciones entre unos y otros no eran buenas. De cierta manera, nosotros éramos un grupo contra los demás, porque sentíamos que éramos diferentes y que teníamos poco en común.',
+      'Lo que en un principio parecía una forma de encontrar nuestro lugar terminó convirtiéndose en una barrera que nos separaba de los demás.',
+      'En otro salón, una situación parecida estaba a punto de ocurrir.',
+      'Una mañana, la puerta del aula se abrió y el profesor Martínez entró acompañado de un estudiante nuevo.',
+      '—Buenos días a todos —dijo el profesor, llamando la atención de la clase—. Hoy se une a nosotros un nuevo compañero. Su nombre es Mateo.',
+      'Mateo dio un paso al frente mientras sujetaba las tiras de su mochila. Se notaba nervioso, pero respiró profundamente y se presentó.',
+      '—Hola a todos. Me llamo Mateo, tengo diez años y me gusta mucho dibujar y leer sobre el espacio.',
+      'Algunos estudiantes lo saludaron con una sonrisa, mientras otros continuaron hablando con sus amigos. Después de presentarlo, el profesor le indicó que ocupara un asiento cerca de la ventana.',
+      'Mateo observó el salón. Todos parecían tener a alguien con quien hablar, compartir sus cosas y pasar el tiempo. Él, en cambio, todavía no conocía a nadie.'
+    ]
+  },
+  {
+    titulo: 'Nudo: cuando nadie sabe cómo acercarse',
+    bloques: [
+      'Durante esa misma clase, el profesor Martínez anunció una actividad.',
+      '—Hoy trabajaremos en nuestro proyecto de ciencias. Necesitamos formar equipos de tres o cuatro personas para diseñar una maqueta del sistema solar.',
+      'Inmediatamente, los estudiantes comenzaron a organizarse. Las sillas se movieron, los amigos se llamaron entre sí y los grupos se formaron rápidamente.',
+      'Mateo permaneció sentado en su pupitre. Miró a su alrededor, esperando encontrar un espacio donde pudiera participar, pero todos parecían haber elegido ya a sus compañeros.',
+      'Al notar la situación, el profesor se acercó a una mesa donde estaban Sofía y Leo.',
+      '—¿Les parece bien si Mateo se une a su equipo?',
+      '—¡Claro que sí, profe! —respondieron ambos.',
+      'Mateo se sentó junto a ellos, pero no sabía cómo comenzar una conversación. Mientras Sofía y Leo discutían qué materiales utilizarían, él mantenía la mirada fija en su cuaderno.',
+      'En el fondo, quería participar, pero le preocupaba que sus ideas no fueran interesantes o que los demás no las tomaran en cuenta.',
+      'Algo parecido sucedía en el resto del salón: algunos estudiantes confiaban únicamente en sus amigos, otros evitaban acercarse a quienes consideraban diferentes y algunos ni siquiera se daban cuenta de que había compañeros que se sentían excluidos.',
+      'El problema no era que todos tuvieran que ser amigos, sino que las diferencias estaban impidiendo que pudieran conocerse, escucharse y trabajar juntos.',
+      { hueco: 0 }
+    ]
+  },
+  {
+    titulo: 'Desenlace inicial: una pregunta puede cambiarlo todo',
+    bloques: [
+      'Mientras el grupo intentaba avanzar con la maqueta, Sofía notó que Mateo apenas había hablado.',
+      'Se inclinó un poco hacia él y le preguntó:',
+      '—Oye, Mateo, dijiste que te gusta mucho el espacio, ¿verdad? ¿Qué planeta te gustaría que hiciéramos primero?',
+      'Mateo levantó la mirada, sorprendido por la pregunta.',
+      '—Me gusta mucho Saturno, por sus anillos —respondió en voz baja.',
+      '—¡A mí también me encanta Saturno! —exclamó Leo—. ¿Sabes dibujarlo? Porque nosotros no somos muy buenos dibujando los anillos.',
+      'Mateo sonrió ligeramente y abrió su cuaderno para mostrarles algunos bocetos que había hecho.',
+      'A partir de ese momento, la conversación comenzó a fluir. Sofía aportó ideas para construir la estructura, Leo propuso los materiales y Mateo explicó cómo podían representar los anillos de Saturno.',
+      'Ninguno tenía por sí solo todo lo necesario para hacer la maqueta, pero cada uno aportaba algo diferente.',
+      'Poco a poco, comprendieron que sus diferencias no eran un obstáculo, sino una oportunidad para construir algo mejor.',
+      { hueco: 1 }
+    ]
+  },
+  {
+    titulo: 'El giro: la misión de la Arena Contrarreloj',
+    bloques: [
+      'Lo que Mateo, Sofía y Leo aprendieron durante aquella actividad representaba algo que también necesitaba el resto del curso: comprender que convivir no significa pensar igual, tener los mismos gustos o pertenecer al mismo grupo.',
+      'Tiempo después, los estudiantes recibieron una misión inesperada.',
+      'Una invitación apareció frente a ellos:',
+      { cita: [
+        '«Bienvenidos a la Arena Contrarreloj. Tienen una misión: superar los desafíos, descubrir los códigos y abrir la caja fuerte antes de que termine el tiempo.',
+        'Pero existe una regla: ningún jugador posee toda la información necesaria. Cada uno tiene pistas que los demás necesitan.',
+        'Si ocultan información, ignoran a sus compañeros o intentan resolverlo todo individualmente, el equipo podría quedarse atrapado.',
+        '¿Están preparados para demostrar que pueden trabajar juntos?».'
+      ] },
+      'Los cuatro participantes de la misión entraron a la Arena. Sobre una mesa encontraron cartas, sobres, instrucciones y objetos misteriosos. A su alrededor había diferentes desafíos que tendrían que superar para llegar a la caja fuerte final.',
+      'Cada jugador recibió información distinta. Uno tenía un manual de instrucciones, otro podía bloquear determinadas pistas durante un tiempo limitado y los demás poseían datos necesarios para resolver los retos.',
+      'Al principio, cada uno intentó concentrarse en su propia información. Sin embargo, pronto descubrieron que sus esfuerzos individuales no eran suficientes.',
+      { hueco: 2 }
+    ]
+  },
+  {
+    titulo: 'El verdadero obstáculo: aprender a confiar',
+    bloques: [
+      'A medida que avanzaban por la Arena, los desafíos se volvían más exigentes. Algunas pistas estaban incompletas, otras solo podían interpretarse con ayuda de un compañero y ciertos retos requerían seguir instrucciones con precisión.',
+      'En un momento, uno de los jugadores creyó tener la respuesta y quiso continuar sin escuchar las opiniones de los demás. El equipo perdió tiempo porque la solución no tenía en cuenta una pista que otro participante había encontrado.',
+      'En otra ocasión, una información aparentemente insignificante resultó ser la pieza que faltaba para completar un reto.',
+      'Los jugadores empezaron a comprender que debían escuchar antes de actuar, explicar sus ideas con claridad y comprobar las respuestas antes de avanzar.',
+      'También descubrieron que bloquear una pista podía dificultar el trabajo del equipo, pero que compartirla en el momento adecuado les permitía recuperar el ritmo.',
+      'Cada desafío les enseñaba algo más que una respuesta: debían organizar información, reconocer patrones, seguir secuencias, resolver problemas y comunicarse para conseguir un objetivo común.',
+      { hueco: 3 }
+    ]
+  },
+  {
+    titulo: 'La última prueba: la caja fuerte',
+    bloques: [
+      'Después de superar varios desafíos, los cuatro jugadores llegaron ante la caja fuerte.',
+      'Habían encontrado códigos, resuelto acertijos y reunido diferentes fragmentos de información, pero todavía necesitaban descubrir cómo combinarlos.',
+      'El temporizador seguía avanzando.',
+      '—Tenemos que revisar las pistas —dijo uno de ellos—. Puede que la respuesta esté en algo que ya resolvimos.',
+      'Otro jugador revisó las tarjetas, mientras los demás comparaban los resultados obtenidos durante la misión.',
+      'Esta vez no intentaron imponerse ni resolver el problema por separado. Cada uno explicó lo que sabía y escuchó a sus compañeros. Poco a poco, las piezas comenzaron a encajar.',
+      'Comprendieron que el código final no dependía de una sola persona. Era el resultado de todo lo que habían descubierto y construido juntos.',
+      { hueco: 4 },
+      'Finalmente, introdujeron la combinación.',
+      'La caja fuerte se abrió.',
+      'Dentro encontraron un mensaje:',
+      { especial: true, cita: [
+        '«La verdadera clave nunca estuvo en una sola pista.',
+        'Estaba en aprender a escuchar, compartir lo que sabemos, reconocer las capacidades de los demás y comprender que nadie tiene que ser igual a nosotros para aportar algo valioso.',
+        'No necesitan pertenecer al mismo grupo, pensar de la misma manera ni tener los mismos gustos para trabajar juntos.',
+        'La diferencia no tiene por qué separarnos.',
+        'Porque, en esta Arena, la verdadera victoria no consiste solamente en escapar.',
+        'Consiste en descubrir que nadie escapa solo».'
+      ] }
+    ]
+  },
+  {
+    titulo: 'Reflexión final',
+    bloques: [
+      'Al terminar la experiencia, los estudiantes tendrán la oportunidad de reflexionar sobre lo sucedido.',
+      { preguntas: [
+        '¿Qué habría ocurrido si un jugador hubiera ocultado su información?',
+        '¿Qué pasó cuando alguien dejó de escuchar a los demás?',
+        '¿Por qué una pista que parecía poco importante terminó siendo necesaria?',
+        '¿Cómo se relaciona lo que ocurrió en la Arena con las situaciones que vivimos en el salón de clase?'
+      ] },
+      'La experiencia busca demostrar que los grupos de amigos no tienen que desaparecer y que no es obligatorio llevarse bien con todo el mundo. Sin embargo, sí es posible respetar las diferencias, incluir a quienes necesitan una oportunidad y colaborar cuando se comparte un objetivo.',
+      'La misión de Arena Contrarreloj no es convertir a todos en iguales, sino enseñarles que pueden lograr grandes cosas sin dejar a nadie atrás.'
+    ]
+  }
+];
+
+// Lista plana de bloques que recorre el lector
+const BLOCKS = [];
+HISTORIA.forEach((cap, c) => {
+  BLOCKS.push({ type: 'section', n: c + 1, titulo: cap.titulo });
+  cap.bloques.forEach((b) => {
+    if (typeof b === 'string') BLOCKS.push({ type: 'p', text: b });
+    else if (b.cita) BLOCKS.push({ type: 'quote', parts: b.cita, special: !!b.especial });
+    else if (b.preguntas) BLOCKS.push({ type: 'questions', items: b.preguntas });
+    else if ('hueco' in b) BLOCKS.push({ type: 'hueco', h: b.hueco });
+  });
+});
+BLOCKS.push({ type: 'end' });
+const HUECO_POS = HUECOS.map((_, h) => BLOCKS.findIndex((b) => b.type === 'hueco' && b.h === h));
+
+/* =========================================================
+   ESTADO DE LA HISTORIA (se reinicia con cada equipo)
+   ========================================================= */
+const story = {
+  pos: 0,               // bloque actual
+  revealed: 0,          // último bloque mostrado
+  playing: false,       // lectura en voz alta automática
+  mode: 'progresivo',   // progresivo | caotico
+  huecos: HUECOS.map(() => ({ status: 'pending', reto: null, ok: null })), // pending | rolled | done | skipped
+  used: new Set()       // retos ya usados por este equipo
+};
+
+const REDUCED_MOTION = window.matchMedia('(prefers-reduced-motion: reduce)').matches;
+const STORY_HINT = 'Avanza con «Siguiente» (o la flecha →) mientras lees, o usa «Leer en voz alta» para que la historia se narre sola. Al llegar a un momento de reto aparece el dado.';
+
+function esc(s) {
+  return String(s).replace(/[&<>"']/g, (c) => ({ '&': '&amp;', '<': '&lt;', '>': '&gt;', '"': '&quot;', "'": '&#39;' }[c]));
+}
+
+/* =========================================================
+   VOZ (lectura en voz alta con el navegador)
+   ========================================================= */
+const VOICE_KEY = 'arena-contrarreloj-voz';
+const voice = {
+  supported: 'speechSynthesis' in window && 'SpeechSynthesisUtterance' in window,
+  list: [],
+  selected: null,
+  hasSpanish: false,
+  token: 0,   // cambia cada vez que se detiene la voz: invalida lecturas viejas
+  queue: []   // referencias a las frases en curso (evita que Chrome las descarte)
+};
+
+function loadVoices() {
+  if (!voice.supported) { updateStoryHint(); return; }
+  const all = speechSynthesis.getVoices();
+  const es = all.filter((v) => /^es([-_]|$)/i.test(v.lang));
+  voice.hasSpanish = es.length > 0;
+  voice.list = es.length ? es : all;
+
+  let saved = null;
+  try { saved = localStorage.getItem(VOICE_KEY); } catch { /* sin almacenamiento */ }
+  const byLang = (code) => es.find((v) => v.lang.replace('_', '-').toLowerCase() === code);
+  voice.selected = voice.list.find((v) => v.voiceURI === saved)
+    || ['es-co', 'es-mx', 'es-us', 'es-419', 'es-ar', 'es-es'].map(byLang).find(Boolean)
+    || es[0] || null;
+
+  els.voiceSelect.innerHTML = '';
+  voice.list.forEach((v) => els.voiceSelect.appendChild(new Option(`${v.name} (${v.lang})`, v.voiceURI)));
+  if (voice.selected) els.voiceSelect.value = voice.selected.voiceURI;
+  els.voicePick.classList.toggle('hidden', voice.list.length < 2);
+  updateStoryHint();
+}
+
+function updateStoryHint(extra) {
+  let msg = STORY_HINT;
+  if (!voice.supported) msg += ' Este navegador no puede leer en voz alta: lee tú la historia.';
+  else if (voice.list.length && !voice.hasSpanish) msg += ' No se encontró una voz en español en este equipo; la lectura puede sonar con otro acento.';
+  if (extra) msg = extra;
+  els.storyHint.textContent = msg;
+}
+
+// Divide el texto en frases cortas: Chrome corta las lecturas largas
+function splitSpeech(text) {
+  const sentences = text.match(/[^.!?…]+[.!?…]+[»”"]*[.!?…]*\s*|[^.!?…]+$/g) || [text];
+  const parts = [];
+  sentences.forEach((s) => {
+    // Una frase muy larga se corta en comas, punto y coma o dos puntos
+    if (s.length <= 180) parts.push(s);
+    else parts.push(...(s.match(/[^,;:]+[,;:]?\s*/g) || [s]));
+  });
+  const chunks = [];
+  let cur = '';
+  parts.forEach((p) => {
+    if (cur && (cur + p).length > 180) { chunks.push(cur.trim()); cur = ''; }
+    cur += p;
+  });
+  if (cur.trim()) chunks.push(cur.trim());
+  return chunks;
+}
+
+function speak(text, onDone) {
+  stopSpeech();
+  if (!voice.supported || !text) { if (onDone) onDone(); return; }
+  const token = voice.token;
+  const chunks = splitSpeech(text);
+  let i = 0;
+  const step = () => {
+    if (token !== voice.token) return;
+    if (i >= chunks.length) { voice.queue = []; if (onDone) onDone(); return; }
+    const u = new SpeechSynthesisUtterance(chunks[i++]);
+    u.lang = voice.selected ? voice.selected.lang : 'es-ES';
+    if (voice.selected) u.voice = voice.selected;
+    u.rate = 0.95;
+    u.onend = step;
+    u.onerror = (e) => {
+      if (token !== voice.token || e.error === 'interrupted' || e.error === 'canceled') return;
+      setPlaying(false);
+      updateStoryHint('El navegador no pudo leer en voz alta. Sigue leyendo tú y avanza con «Siguiente».');
+    };
+    voice.queue.push(u);
+    speechSynthesis.resume();
+    speechSynthesis.speak(u);
+  };
+  // Pequeña pausa: algunos navegadores ignoran una frase pedida justo después de cancelar otra
+  setTimeout(step, 60);
+}
+
+function stopSpeech() {
+  voice.token++;
+  voice.queue = [];
+  if (voice.supported) speechSynthesis.cancel();
+}
+
+function setPlaying(on) {
+  story.playing = !!on && voice.supported;
+  els.btnStoryPlay.textContent = story.playing ? '⏸ Pausar lectura' : '🔊 Leer en voz alta';
+  els.btnStoryPlay.classList.toggle('is-playing', story.playing);
+  els.btnStoryPlay.setAttribute('aria-pressed', String(story.playing));
+  if (!story.playing) stopSpeech();
+}
+
+function togglePlay() {
+  if (story.playing) { setPlaying(false); return; }
+  setPlaying(true);
+  if (story.playing) arrive();
+}
+
+function blockText(b) {
+  switch (b.type) {
+    case 'section': return `Capítulo ${b.n}. ${b.titulo}.`;
+    case 'p': return b.text;
+    case 'quote': return b.parts.join(' ');
+    case 'questions': return b.items.join(' ');
+    default: return '';
+  }
+}
+
+/* =========================================================
+   LECTOR DE LA HISTORIA
+   ========================================================= */
+function resetStory() {
+  closeDice(true);
+  setPlaying(false);
+  story.pos = 0;
+  story.revealed = 0;
+  story.mode = 'progresivo';
+  story.huecos = HUECOS.map(() => ({ status: 'pending', reto: null, ok: null }));
+  story.used = new Set();
+  renderStory();
+  els.storyBody.scrollTop = 0;
+}
+
+function stopStory() {
+  closeDice(true);
+  setPlaying(false);
+}
+
+function renderStory() {
+  els.storyBody.innerHTML = '';
+  BLOCKS.forEach((b, i) => {
+    let el;
+    if (b.type === 'section') {
+      el = document.createElement('div');
+      el.className = 'sb sb-section';
+      el.innerHTML = `<span class="sb-chapter">Capítulo ${b.n}</span><h3>${esc(b.titulo)}</h3>`;
+    } else if (b.type === 'p') {
+      el = document.createElement('p');
+      el.className = 'sb sb-p';
+      el.textContent = b.text;
+    } else if (b.type === 'quote') {
+      el = document.createElement('blockquote');
+      el.className = `sb sb-quote${b.special ? ' special' : ''}`;
+      el.innerHTML = b.parts.map((t) => `<p>${esc(t)}</p>`).join('');
+    } else if (b.type === 'questions') {
+      el = document.createElement('ul');
+      el.className = 'sb sb-questions';
+      el.innerHTML = b.items.map((t) => `<li>${esc(t)}</li>`).join('');
+    } else if (b.type === 'hueco') {
+      el = document.createElement('div');
+      el.className = 'sb sb-hueco';
+    } else {
+      el = document.createElement('div');
+      el.className = 'sb sb-end';
+    }
+    el.dataset.i = i;
+    b.el = el;
+    els.storyBody.appendChild(el);
+  });
+  HUECOS.forEach((_, h) => renderHueco(h));
+  updateStory();
+}
+
+function updateStory() {
+  BLOCKS.forEach((b, i) => {
+    b.el.classList.toggle('future', i > story.revealed);
+    b.el.classList.toggle('current', i === story.pos);
+    b.el.classList.toggle('past', i < story.pos);
+  });
+  renderStoryEnd();
+  renderHuecoTrack();
+  updateStoryControls();
+}
+
+function scrollToBlock(i) {
+  const el = BLOCKS[i].el;
+  const body = els.storyBody;
+  const top = el.offsetTop - (BLOCKS[i].type === 'hueco' ? 8 : body.clientHeight * 0.25);
+  body.scrollTo({ top: Math.max(0, top), behavior: REDUCED_MOTION ? 'auto' : 'smooth' });
+}
+
+// Llega a un bloque: lo lee en voz alta o, si es un momento de reto, saca el dado
+function arrive() {
+  const b = BLOCKS[story.pos];
+  if (b.type === 'hueco') {
+    const hs = story.huecos[b.h];
+    if (hs.status === 'pending') { startHueco(b.h); return; }
+    if (hs.status === 'rolled') { if (story.playing) speak(RETO_BY_N[hs.reto].intro); return; }
+    if (story.playing) storyNext(); // ya resuelto u omitido: sigue la historia
+    return;
+  }
+  if (b.type === 'end') { setPlaying(false); return; }
+  if (story.playing) speak(blockText(b), storyNext);
+}
+
+function setPos(i) {
+  story.pos = Math.max(0, Math.min(BLOCKS.length - 1, i));
+  story.revealed = Math.max(story.revealed, story.pos);
+  updateStory();
+  scrollToBlock(story.pos);
+  arrive();
+}
+
+function storyNext() {
+  stopSpeech();
+  const b = BLOCKS[story.pos];
+  if (b.type === 'hueco') {
+    const hs = story.huecos[b.h];
+    if (hs.status === 'pending') { startHueco(b.h); return; }
+    if (hs.status === 'rolled') { nudgeOutcome(b.h); return; }
+  }
+  if (story.pos >= BLOCKS.length - 1) { setPlaying(false); return; }
+  setPos(story.pos + 1);
+}
+
+function storyPrev() {
+  stopSpeech();
+  let i = story.pos - 1;
+  // En lectura automática, saltar los retos ya resueltos (si no, la lectura volvería a avanzar)
+  while (story.playing && i > 0 && BLOCKS[i].type === 'hueco') i--;
+  if (i >= 0) setPos(i);
+}
+
+function jumpTo(i) {
+  stopSpeech();
+  setPos(i);
+}
+
+// Lleva la vista a los botones «¡Lo lograron! / No lo lograron» y los sacude
+function nudgeOutcome(h) {
+  const actions = BLOCKS[HUECO_POS[h]].el.querySelector('.reto-actions');
+  if (!actions) return;
+  const body = els.storyBody;
+  const overflow = actions.getBoundingClientRect().bottom - body.getBoundingClientRect().bottom;
+  body.scrollTo({ top: body.scrollTop + overflow + 16, behavior: REDUCED_MOTION ? 'auto' : 'smooth' });
+  actions.classList.remove('nudge');
+  void actions.offsetWidth;
+  actions.classList.add('nudge');
+}
+
+function updateStoryControls() {
+  const b = BLOCKS[story.pos];
+  const hs = b.type === 'hueco' ? story.huecos[b.h] : null;
+  els.btnStoryPrev.disabled = story.pos === 0;
+  els.btnStoryPlay.disabled = !voice.supported;
+  els.btnStoryPlay.title = voice.supported ? '' : 'Este navegador no puede leer en voz alta';
+
+  let label = 'Siguiente ▶';
+  let disabled = story.pos >= BLOCKS.length - 1;
+  if (hs && hs.status === 'pending') label = HUECOS[b.h].fijo ? '🔐 Reto final' : '🎲 Lanzar el dado';
+  if (hs && hs.status === 'rolled') label = '¿Lo lograron? ↓';
+  els.btnStoryNext.textContent = label;
+  els.btnStoryNext.disabled = disabled;
+}
+
+/* ---------- Momentos de reto ---------- */
+function huecoNivel(h) {
+  const def = HUECOS[h];
+  if (def.fijo) return null;
+  return story.mode === 'caotico' ? 'libre' : def.nivel;
+}
+
+function startHueco(h) {
+  stopSpeech();
+  if (HUECOS[h].fijo) confirmReto(h, HUECOS[h].fijo);
+  else openDice(h);
+}
+
+function confirmReto(h, n) {
+  const hs = story.huecos[h];
+  hs.status = 'rolled';
+  hs.reto = n;
+  hs.ok = null;
+  story.used.add(n);
+  renderHueco(h);
+  updateStory();
+  scrollToBlock(HUECO_POS[h]);
+  if (story.playing) speak(RETO_BY_N[n].intro);
+}
+
+function setOutcome(h, ok) {
+  const hs = story.huecos[h];
+  if (hs.status !== 'rolled') return;
+  hs.status = 'done';
+  hs.ok = ok;
+  renderHueco(h);
+  updateStory();
+  scrollToBlock(HUECO_POS[h]);
+
+  // Abrir la caja fuerte detiene el reloj: el equipo escapó
+  if (HUECOS[h].fijo && ok && state.current && state.current.status === 'running') {
+    finishGame('victory', 'victory', { defer: true });
+  }
+  if (story.playing && story.pos === HUECO_POS[h]) speak(RETO_BY_N[hs.reto].cierre, storyNext);
+}
+
+function skipHueco(h) {
+  story.huecos[h].status = 'skipped';
+  renderHueco(h);
+  updateStory();
+  if (story.playing && story.pos === HUECO_POS[h]) storyNext();
+}
+
+function unskipHueco(h) {
+  story.huecos[h].status = 'pending';
+  renderHueco(h);
+  jumpTo(HUECO_POS[h]);
+}
+
+function sayBtn(h, field) {
+  if (!voice.supported) return '';
+  return `<button type="button" class="say-btn" data-act="say" data-h="${h}" data-field="${field}" title="Leer en voz alta" aria-label="Leer en voz alta">🔊</button>`;
+}
+
+function renderHueco(h) {
+  const el = BLOCKS[HUECO_POS[h]].el;
+  const hs = story.huecos[h];
+  const def = HUECOS[h];
+
+  if (hs.status === 'pending') {
+    const nivel = huecoNivel(h);
+    const fijo = def.fijo ? RETO_BY_N[def.fijo] : null;
+    const cls = fijo ? `lvl-${fijo.dificultad}` : `lvl-${nivel}`;
+    const title = fijo
+      ? `Reto final: ${fijo.titulo}`
+      : nivel === 'libre' ? 'Reto al azar · el dado decide la dificultad' : `Reto al azar · nivel ${NIVELES[nivel].label}`;
+    el.innerHTML = `
+      <div class="hueco-pending ${cls}">
+        <div class="hueco-icon" aria-hidden="true">${fijo ? '🔐' : '🎲'}</div>
+        <div>
+          <span class="eyebrow">Momento de reto ${h + 1} de ${HUECOS.length}</span>
+          <h4>${esc(title)}</h4>
+          <p class="hueco-note">${esc(def.nota)}</p>
+        </div>
+        <button type="button" class="btn btn-primary" data-act="open" data-h="${h}">${fijo ? '🔐 Abrir el reto final' : '🎲 Lanzar el dado'}</button>
+      </div>`;
+    return;
+  }
+
+  if (hs.status === 'skipped') {
+    el.innerHTML = `
+      <div class="hueco-skipped">
+        <span>⏭ Momento de reto ${h + 1} omitido.</span>
+        <button type="button" class="btn btn-ghost btn-sm" data-act="unskip" data-h="${h}">Hacer este reto</button>
+      </div>`;
+    return;
+  }
+
+  const r = RETO_BY_N[hs.reto];
+  const isFinal = !!def.fijo;
+  const done = hs.status === 'done';
+  const outcome = done
+    ? (hs.ok ? '<span class="tag win">✔ Superado</span>' : '<span class="tag lose">✖ No superado</span>')
+    : '';
+  const details = `
+      <section class="reto-read">
+        <div class="reto-label">Introducción · para leer en voz alta ${sayBtn(h, 'intro')}</div>
+        <p>${esc(r.intro)}</p>
+      </section>
+      <section>
+        <div class="reto-label">Instrucciones del reto</div>
+        <p>${esc(r.instrucciones)}</p>
+      </section>
+      <details>
+        <summary>🧰 Materiales y preparación</summary>
+        <ul>${r.materiales.map((m) => `<li>${esc(m)}</li>`).join('')}</ul>
+        <p><strong>Preparación:</strong> ${esc(r.preparacion)}</p>
+      </details>
+      <details>
+        <summary>💡 Pista si se bloquean</summary>
+        <p>${esc(r.pista)}</p>
+      </details>
+      <details>
+        <summary>🔑 Solución esperada (solo para quien facilita)</summary>
+        <p>${esc(r.solucion)}</p>
+        <p class="muted"><strong>Aprendizaje:</strong> ${esc(r.aprendizaje)}</p>
+      </details>`;
+  const actions = `
+      <div class="reto-actions">
+        <button type="button" class="btn btn-ghost" data-act="fail" data-h="${h}">${isFinal ? 'No la abrieron' : '✖ No lo lograron'}</button>
+        <button type="button" class="btn btn-success" data-act="ok" data-h="${h}">${isFinal ? '🔓 ¡Abrieron la caja fuerte!' : '✔ ¡Lo lograron!'}</button>
+      </div>`;
+  const cierre = `
+      <section class="reto-read reto-cierre">
+        <div class="reto-label">Cierre · para leer en voz alta ${sayBtn(h, 'cierre')}</div>
+        <p>${esc(r.cierre)}</p>
+      </section>`;
+
+  el.innerHTML = `
+    <article class="reto-card lvl-${r.dificultad}">
+      <header class="reto-head">
+        <div class="reto-num">${r.n}</div>
+        <div class="reto-title">
+          <span class="eyebrow">Momento de reto ${h + 1} · ${isFinal ? 'reto final' : 'elegido por el dado'}</span>
+          <h4>${esc(r.titulo)}</h4>
+          <div class="reto-tags">
+            <span class="tag lvl">${NIVELES[r.dificultad].label}</span>
+            <span class="tag">${esc(r.categoria)}</span>
+            <span class="tag">⏱ ${esc(r.tiempo)}</span>
+          </div>
+        </div>
+        ${outcome}
+      </header>
+      ${done ? `${cierre}<details class="reto-more"><summary>Ver el reto completo</summary>${details}</details>` : details + actions}
+    </article>`;
+}
+
+function renderHuecoTrack() {
+  els.huecoTrack.innerHTML = '';
+  HUECOS.forEach((def, h) => {
+    const hs = story.huecos[h];
+    const li = document.createElement('li');
+    const btn = document.createElement('button');
+    btn.type = 'button';
+    btn.className = 'hueco-chip';
+
+    let text;
+    if (hs.reto) text = `${h + 1} · Reto ${hs.reto}`;
+    else if (def.fijo) text = `${h + 1} · 🔐 Final`;
+    else {
+      const nivel = huecoNivel(h);
+      text = `${h + 1} · ${nivel === 'libre' ? '🎲 Libre' : NIVELES[nivel].label}`;
+    }
+    if (hs.status === 'done') { btn.classList.add(hs.ok ? 'is-ok' : 'is-fail'); text += hs.ok ? ' ✔' : ' ✖'; }
+    if (hs.status === 'rolled') btn.classList.add('is-rolled');
+    if (hs.status === 'skipped') btn.classList.add('is-skipped');
+    if (story.pos === HUECO_POS[h]) btn.classList.add('is-current');
+    btn.disabled = HUECO_POS[h] > story.revealed;
+    btn.textContent = text;
+    btn.addEventListener('click', () => jumpTo(HUECO_POS[h]));
+    li.appendChild(btn);
+    els.huecoTrack.appendChild(li);
+  });
+
+  // El orden se decide antes del primer reto y ya no se puede cambiar
+  const locked = story.huecos.some((hs) => hs.status !== 'pending');
+  els.modeSwitch.querySelectorAll('.mode-btn').forEach((b) => {
+    const active = b.dataset.mode === story.mode;
+    b.classList.toggle('active', active);
+    b.setAttribute('aria-pressed', String(active));
+    b.disabled = locked && !active;
+  });
+}
+
+function setMode(mode) {
+  if (story.huecos.some((hs) => hs.status !== 'pending')) return;
+  story.mode = mode;
+  HUECOS.forEach((_, h) => renderHueco(h));
+  updateStory();
+}
+
+function renderStoryEnd() {
+  const el = BLOCKS[BLOCKS.length - 1].el;
+  if (!el) return;
+  const status = state.current ? state.current.status : 'ready';
+  if (el.dataset.state === status) return;
+  el.dataset.state = status;
+
+  let html = '<div class="story-end"><span class="eyebrow">Fin de la historia</span>';
+  if (status === 'finished') {
+    html += '<p>La misión terminó. Revisa cómo le fue al equipo.</p><button type="button" class="btn btn-primary" data-act="result">🏆 Ver resultado del equipo</button>';
+  } else if (status === 'running') {
+    html += '<p>Cuando el equipo termine, pulsa <strong>■ Terminar</strong> en el cronómetro.</p>';
+  } else if (status === 'eliminating') {
+    html += '<p>El equipo se quedó sin vidas.</p>';
+  } else {
+    html += '<p>El cronómetro no se inició en esta partida.</p>';
+  }
+  el.innerHTML = `${html}</div>`;
+}
+
+// Copia el cronómetro en la cabecera de la historia para verlo mientras se lee
+function syncStoryClock() {
+  if (els.gameView.classList.contains('hidden')) return;
+  els.storyClockText.textContent = els.timerText.textContent;
+  els.storyClockLabel.textContent = els.timerLabel.textContent;
+  els.storyClock.classList.toggle('warning', els.timerCard.classList.contains('warning'));
+  renderStoryEnd();
+}
+
+/* =========================================================
+   DADO DE RETOS
+   ========================================================= */
+// Giro (X, Y) que deja cada cara mirando al frente
+const FACE_ROT = [[0, 0], [0, 180], [0, 270], [0, 90], [270, 0], [90, 0]];
+const ROLL_MS = REDUCED_MOTION ? 500 : 1900;
+
+const dice = {
+  h: null,          // momento de reto que se está sorteando
+  phase: 'reto',    // nivel (dificultad) | reto
+  libre: false,     // el dado decide también la dificultad
+  nivel: null,
+  result: null,     // número de reto elegido
+  rejected: new Set(),
+  rolling: false,
+  rollId: 0,
+  rx: 0,
+  ry: 0
+};
+
+function retoPool(nivel) {
+  const base = RETOS.filter((r) => r.dificultad === nivel && !RETOS_FIJOS.has(r.n) && !story.used.has(r.n));
+  const fresh = base.filter((r) => !dice.rejected.has(r.n));
+  return fresh.length ? fresh : base;
+}
+
+function nivelItems() {
+  return NIVEL_KEYS.filter((k) => retoPool(k).length)
+    .map((k) => ({ key: k, word: NIVELES[k].label, cls: `lvl-${k}` }));
+}
+
+function retoItems() {
+  return retoPool(dice.nivel).map((r) => ({ key: r.n, num: r.n, cls: `lvl-${r.dificultad}` }));
+}
+
+// Reparte las opciones en las 6 caras (se repiten si hay menos de 6)
+function paintFaces(items, offset = 0) {
+  const faces = [];
+  for (let i = 0; i < 6; i++) faces.push(items[(i + offset) % items.length]);
+  els.dieFaces.forEach((face, i) => {
+    const it = faces[i];
+    face.className = `face f${i} ${it.cls}`;
+    face.innerHTML = it.word
+      ? `<span class="face-lbl">Dificultad</span><span class="face-word">${it.word}</span>`
+      : `<span class="face-lbl">Reto</span><span class="face-num">${it.num}</span>`;
+  });
+  return faces;
+}
+
+// Ángulo final: al menos `turns` vueltas más y terminando en `target` (mod 360)
+function nextAngle(current, target, turns) {
+  const base = current + turns * 360;
+  const mod = ((base % 360) + 360) % 360;
+  return base + ((target - mod) % 360 + 360) % 360;
+}
+
+function openDice(h) {
+  stopSpeech();
+  dice.h = h;
+  dice.result = null;
+  dice.rejected = new Set();
+
+  let nivel = huecoNivel(h);
+  if (nivel !== 'libre' && !retoPool(nivel).length) nivel = 'libre';
+  dice.libre = nivel === 'libre';
+  dice.nivel = dice.libre ? null : nivel;
+  dice.phase = dice.libre ? 'nivel' : 'reto';
+
+  els.diceEyebrow.textContent = `Momento de reto ${h + 1} de ${HUECOS.length}`;
+  els.diceSub.innerHTML = dice.libre
+    ? 'Dificultad libre: primero el dado elige la <strong>dificultad</strong> y luego el <strong>reto</strong>.'
+    : `El dado elegirá uno de los retos de nivel <strong>${NIVELES[nivel].label}</strong>.`;
+  els.diceResult.innerHTML = '';
+  els.diceStage.classList.remove('rolling', 'landed');
+
+  const items = dice.phase === 'nivel' ? nivelItems() : retoItems();
+  if (items.length) paintFaces(items);
+  else els.diceResult.innerHTML = '<p class="dice-rolling">No quedan retos disponibles. Salta este momento.</p>';
+
+  updateDiceButtons();
+  els.diceModal.classList.remove('hidden');
+  setTimeout(() => (items.length ? els.btnDiceRoll : els.btnDiceSkip).focus(), 50);
+}
+
+function closeDice(force = false) {
+  if (dice.rolling && !force) return;
+  dice.rolling = false;
+  dice.rollId++;
+  els.diceModal.classList.add('hidden');
+  dice.h = null;
+}
+
+function updateDiceButtons() {
+  const has = dice.result != null;
+  const items = dice.phase === 'nivel' ? nivelItems() : retoItems();
+  const pool = dice.nivel ? RETOS.filter((r) => r.dificultad === dice.nivel && !RETOS_FIJOS.has(r.n) && !story.used.has(r.n)) : [];
+
+  els.btnDiceRoll.classList.toggle('hidden', has);
+  els.btnDiceRoll.disabled = dice.rolling || !items.length;
+  els.btnDiceRoll.textContent = dice.phase === 'nivel' ? '🎲 Lanzar: dificultad' : dice.libre ? '🎲 Lanzar: reto' : '🎲 Lanzar el dado';
+  els.btnDiceGo.classList.toggle('hidden', !has);
+  els.btnDiceReroll.classList.toggle('hidden', !has || pool.length < 2);
+  els.btnDiceSkip.disabled = dice.rolling;
+  els.btnDiceClose.disabled = dice.rolling;
+}
+
+function rollDice() {
+  if (dice.rolling || dice.h == null) return;
+  const items = dice.phase === 'nivel' ? nivelItems() : retoItems();
+  if (!items.length) return;
+
+  const pick = items[Math.floor(Math.random() * items.length)];
+  const faces = paintFaces(items, Math.floor(Math.random() * items.length));
+  const options = faces.map((it, i) => (it.key === pick.key ? i : -1)).filter((i) => i >= 0);
+  const [fx, fy] = FACE_ROT[options[Math.floor(Math.random() * options.length)]];
+  dice.rx = nextAngle(dice.rx, fx, 2 + Math.floor(Math.random() * 2));
+  dice.ry = nextAngle(dice.ry, fy, 2 + Math.floor(Math.random() * 2));
+
+  dice.rolling = true;
+  dice.result = null;
+  const rollId = ++dice.rollId;
+  els.diceResult.innerHTML = '<p class="dice-rolling">Rodando…</p>';
+  els.diceStage.classList.remove('rolling', 'landed');
+  void els.diceStage.offsetWidth; // reinicia la animación del salto
+  els.diceStage.classList.add('rolling');
+  els.die.style.transform = `rotateX(${dice.rx}deg) rotateY(${dice.ry}deg)`;
+  updateDiceButtons();
+
+  setTimeout(() => { if (rollId === dice.rollId) landDice(pick); }, ROLL_MS);
+}
+
+function landDice(pick) {
+  dice.rolling = false;
+  els.diceStage.classList.remove('rolling');
+  els.diceStage.classList.add('landed');
+
+  if (dice.phase === 'nivel') {
+    dice.nivel = pick.key;
+    dice.phase = 'reto';
+    els.diceResult.innerHTML = `
+      <div class="dice-pick lvl-${pick.key}">
+        <span class="eyebrow">Dificultad</span>
+        <strong>${NIVELES[pick.key].label}</strong>
+        <small>Ahora lancen otra vez para elegir el reto.</small>
+      </div>`;
+    if (story.playing) speak(`Dificultad: ${NIVELES[pick.key].label}.`);
+    // Cambia las caras a los retos de esa dificultad
+    const rollId = dice.rollId;
+    setTimeout(() => {
+      if (rollId !== dice.rollId || dice.rolling) return;
+      els.diceStage.classList.remove('landed');
+      paintFaces(retoItems());
+    }, 900);
+  } else {
+    const r = RETO_BY_N[pick.key];
+    dice.result = r.n;
+    els.diceResult.innerHTML = `
+      <div class="dice-pick lvl-${r.dificultad}">
+        <span class="eyebrow">Reto ${r.n} · ${NIVELES[r.dificultad].label}</span>
+        <strong>${esc(r.titulo)}</strong>
+        <small>${esc(r.categoria)} · ⏱ ${esc(r.tiempo)}</small>
+      </div>`;
+    if (story.playing) speak(`Reto ${r.n}: ${r.titulo}.`);
+  }
+  updateDiceButtons();
+  (dice.result != null ? els.btnDiceGo : els.btnDiceRoll).focus();
+}
+
+function rerollDice() {
+  if (dice.result == null || dice.rolling) return;
+  dice.rejected.add(dice.result);
+  dice.result = null;
+  rollDice();
+}
+
+function acceptDice() {
+  if (dice.result == null || dice.rolling) return;
+  const h = dice.h;
+  const n = dice.result;
+  closeDice();
+  confirmReto(h, n);
+}
+
+function skipFromDice() {
+  if (dice.rolling || dice.h == null) return;
+  const h = dice.h;
+  closeDice();
+  skipHueco(h);
+}
+
+/* =========================================================
    EVENTOS
    ========================================================= */
 els.btnAddTeam.addEventListener('click', openRegisterModal);
@@ -1347,13 +2943,67 @@ els.registerForm.addEventListener('keydown', (e) => {
 els.btnStart.addEventListener('click', startTimer);
 els.btnEnd.addEventListener('click', () => finishGame('victory')); // Escenario A
 els.btnNext.addEventListener('click', nextTeam);
+els.btnBackStory.addEventListener('click', () => els.resultModal.classList.add('hidden'));
+els.btnShowResult.addEventListener('click', openResultModal);
 els.btnResetAll.addEventListener('click', resetTournament);
 $('btnConfirmYes').addEventListener('click', confirmReset);
 $('btnConfirmNo').addEventListener('click', () => $('confirmModal').classList.add('hidden'));
 
-// Cerrar el formulario con Escape o clic fuera
+// Historia
+els.btnStoryNext.addEventListener('click', storyNext);
+els.btnStoryPrev.addEventListener('click', storyPrev);
+els.btnStoryPlay.addEventListener('click', togglePlay);
+els.modeSwitch.addEventListener('click', (e) => {
+  const btn = e.target.closest('.mode-btn');
+  if (btn && !btn.disabled) setMode(btn.dataset.mode);
+});
+els.voiceSelect.addEventListener('change', () => {
+  voice.selected = voice.list.find((v) => v.voiceURI === els.voiceSelect.value) || null;
+  try { localStorage.setItem(VOICE_KEY, els.voiceSelect.value); } catch { /* sin almacenamiento */ }
+});
+els.storyBody.addEventListener('click', (e) => {
+  const act = e.target.closest('[data-act]');
+  if (act) {
+    const h = Number(act.dataset.h);
+    if (act.dataset.act === 'open') jumpTo(HUECO_POS[h]);
+    else if (act.dataset.act === 'ok') setOutcome(h, true);
+    else if (act.dataset.act === 'fail') setOutcome(h, false);
+    else if (act.dataset.act === 'unskip') unskipHueco(h);
+    else if (act.dataset.act === 'result') openResultModal();
+    else if (act.dataset.act === 'say') {
+      const r = RETO_BY_N[story.huecos[h].reto];
+      if (r) speak(r[act.dataset.field]);
+    }
+    return;
+  }
+  // Clic en un párrafo ya leído: volver a él
+  const block = e.target.closest('.sb-p, .sb-section, .sb-quote, .sb-questions');
+  if (block && !block.classList.contains('current')) jumpTo(Number(block.dataset.i));
+});
+
+// Dado
+els.btnDiceRoll.addEventListener('click', rollDice);
+els.btnDiceReroll.addEventListener('click', rerollDice);
+els.btnDiceGo.addEventListener('click', acceptDice);
+els.btnDiceSkip.addEventListener('click', skipFromDice);
+els.btnDiceClose.addEventListener('click', () => closeDice());
+
+if (voice.supported) speechSynthesis.addEventListener('voiceschanged', loadVoices);
+setInterval(syncStoryClock, 250);
+
+// Cerrar el formulario o el dado con Escape (o clic fuera del formulario)
 document.addEventListener('keydown', (e) => {
   if (e.key === 'Escape' && !els.registerModal.classList.contains('hidden')) closeRegisterModal();
+  if (e.key === 'Escape' && !els.diceModal.classList.contains('hidden')) closeDice();
+});
+
+// Flechas ← → para avanzar en la historia (si no hay ventanas abiertas ni se está escribiendo)
+document.addEventListener('keydown', (e) => {
+  if (e.key !== 'ArrowRight' && e.key !== 'ArrowLeft') return;
+  if (els.gameView.classList.contains('hidden') || document.querySelector('.modal:not(.hidden)')) return;
+  if (/^(INPUT|SELECT|TEXTAREA)$/.test(e.target.tagName)) return;
+  e.preventDefault();
+  if (e.key === 'ArrowRight') storyNext(); else storyPrev();
 });
 els.registerModal.addEventListener('click', (e) => {
   if (e.target === els.registerModal) closeRegisterModal();
@@ -1370,6 +3020,7 @@ window.addEventListener('beforeunload', (e) => {
 /* =========================================================
    INICIO
    ========================================================= */
+loadVoices();
 renderLeaderboard();
 showRegisterView();
 </script>
