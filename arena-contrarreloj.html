@@ -932,7 +932,7 @@ input.invalid { border-color: var(--danger); }
   <!-- ================= VISTA: REGISTRO ================= -->
   <section id="registerView" class="card hero">
     <h2>Registra al siguiente equipo</h2>
-    <p>4 jugadores · 5 vidas cada uno · 10 minutos en el reloj · retos sorteados con dado</p>
+    <p>4 jugadores · 5 vidas cada uno · 12 minutos en el reloj · 3 retos con dado y la caja fuerte</p>
     <button id="btnAddTeam" class="btn btn-primary btn-xl" type="button">+ Añadir equipo</button>
     <p id="registerNote" class="note"></p>
   </section>
@@ -968,7 +968,7 @@ input.invalid { border-color: var(--danger); }
             <circle class="ring-fg" id="ringFg" cx="100" cy="100" r="88"/>
           </svg>
           <div class="timer-center">
-            <div class="timer-text" id="timerText" role="timer" aria-live="off">10:00</div>
+            <div class="timer-text" id="timerText" role="timer" aria-live="off">12:00</div>
             <div class="timer-label" id="timerLabel">Listo</div>
           </div>
         </div>
@@ -988,7 +988,7 @@ input.invalid { border-color: var(--danger); }
           <h2>📖 Nadie escapa solo</h2>
         </div>
         <div class="story-clock" id="storyClock" title="Tiempo restante">
-          <span>⏱ <span id="storyClockText">10:00</span></span>
+          <span>⏱ <span id="storyClockText">12:00</span></span>
           <small id="storyClockLabel">Listo</small>
         </div>
       </div>
@@ -997,8 +997,8 @@ input.invalid { border-color: var(--danger); }
         <ol class="hueco-track" id="huecoTrack" aria-label="Momentos de reto de la historia"></ol>
         <div class="mode-switch" id="modeSwitch" role="group" aria-label="Orden de los retos">
           <span>Orden</span>
-          <button type="button" class="mode-btn active" data-mode="progresivo" title="Fácil → medio → difícil → libre → caja fuerte">Progresivo</button>
-          <button type="button" class="mode-btn" data-mode="caotico" title="El dado decide también la dificultad de cada reto">Caótico</button>
+          <button type="button" class="mode-btn active" data-mode="progresivo" title="Fácil → medio → difícil → caja fuerte">Progresivo</button>
+          <button type="button" class="mode-btn" data-mode="caotico" title="El dado decide en qué orden salen fácil, medio y difícil">Caótico</button>
         </div>
       </div>
 
@@ -1140,7 +1140,7 @@ const CONFIG = {
   MAX_TEAMS: 10,          // Grupos del torneo
   PLAYERS: 4,             // Jugadores por equipo
   HEARTS: 5,              // Vidas por jugador
-  DURATION: 10 * 60,      // Duración en segundos (10:00)
+  DURATION: 12 * 60,      // Duración en segundos (12:00, como propone el manual de retos)
   POINTS_PER_HEART: 10,   // Puntos por corazón restante
   POINTS_PER_ALIVE: 100,  // Puntos por jugador vivo
   SPEED_MAX: 100,         // Puntos del equipo más rápido
@@ -1461,7 +1461,7 @@ function eliminateTeam() {
   els.teamCard.classList.add('locked');
   els.timerLabel.textContent = 'Sin vidas';
 
-  // Tiempo desde el que arranca la caída (10:00 si no habían iniciado)
+  // Tiempo desde el que arranca la caída (el tiempo completo si no habían iniciado)
   const fromMs = wasRunning ? getRemainingMs() : CONFIG.DURATION * 1000;
 
   // Espera a que se vea quemarse el último nombre y luego vacía el reloj
@@ -2080,14 +2080,16 @@ const NIVELES = {
 const NIVEL_KEYS = Object.keys(NIVELES);
 
 /* Momentos de reto (los «puntos de inserción de puzle» de la narrativa).
+   Partida de 12 minutos del manual: un reto fácil, uno medio y uno difícil,
+   y al final la caja fuerte.
    nivel: dificultad que usa el dado en el orden progresivo.
           'libre' = el dado decide primero la dificultad y luego el reto.
-   fijo:  número de reto que siempre va en ese momento (no se lanza el dado). */
+   fijo:  número de reto que siempre va en ese momento (no se lanza el dado).
+   Cada momento se coloca en HISTORIA con { hueco: n } (n = posición en esta lista). */
 const HUECOS = [
   { nivel: 'facil',   nota: 'Reto de organización, observación o identificación de información. Su solución permite que la historia continúe.' },
   { nivel: 'medio',   nota: 'Reto para compartir instrucciones, escuchar a otro participante o combinar información.' },
   { nivel: 'dificil', nota: 'Reto con la información repartida entre los cuatro jugadores. Su solución da una pista para continuar la misión.' },
-  { nivel: 'libre',   nota: 'Reto de dificultad libre que exige combinar dos o más pistas para avanzar hacia la etapa final.' },
   { fijo: 12,         nota: 'Reto final: deducir la combinación de la caja fuerte a partir de las pistas anteriores.' }
 ];
 // Los retos reservados para un momento fijo nunca salen en el dado
@@ -2173,8 +2175,10 @@ const HISTORIA = [
       'En otra ocasión, una información aparentemente insignificante resultó ser la pieza que faltaba para completar un reto.',
       'Los jugadores empezaron a comprender que debían escuchar antes de actuar, explicar sus ideas con claridad y comprobar las respuestas antes de avanzar.',
       'También descubrieron que bloquear una pista podía dificultar el trabajo del equipo, pero que compartirla en el momento adecuado les permitía recuperar el ritmo.',
-      'Cada desafío les enseñaba algo más que una respuesta: debían organizar información, reconocer patrones, seguir secuencias, resolver problemas y comunicarse para conseguir un objetivo común.',
-      { hueco: 3 }
+      'Cada desafío les enseñaba algo más que una respuesta: debían organizar información, reconocer patrones, seguir secuencias, resolver problemas y comunicarse para conseguir un objetivo común.'
+      // La narrativa tiene aquí un 4.º punto de reto (dificultad libre). No se usa en la
+      // partida de 12 minutos con 3 retos; para activarlo, agrega { nivel: 'libre', nota: '…' }
+      // a HUECOS antes de la caja fuerte y pon { hueco: 3 } aquí y { hueco: 4 } en la caja fuerte.
     ]
   },
   {
@@ -2187,7 +2191,7 @@ const HISTORIA = [
       'Otro jugador revisó las tarjetas, mientras los demás comparaban los resultados obtenidos durante la misión.',
       'Esta vez no intentaron imponerse ni resolver el problema por separado. Cada uno explicó lo que sabía y escuchó a sus compañeros. Poco a poco, las piezas comenzaron a encajar.',
       'Comprendieron que el código final no dependía de una sola persona. Era el resultado de todo lo que habían descubierto y construido juntos.',
-      { hueco: 4 },
+      { hueco: 3 },
       'Finalmente, introdujeron la combinación.',
       'La caja fuerte se abrió.',
       'Dentro encontraron un mensaje:',
@@ -2681,7 +2685,7 @@ function renderHuecoTrack() {
     else if (def.fijo) text = `${h + 1} · 🔐 Final`;
     else {
       const nivel = huecoNivel(h);
-      text = `${h + 1} · ${nivel === 'libre' ? '🎲 Libre' : NIVELES[nivel].label}`;
+      text = `${h + 1} · ${nivel === 'libre' ? '🎲 Al azar' : NIVELES[nivel].label}`;
     }
     if (hs.status === 'done') { btn.classList.add(hs.ok ? 'is-ok' : 'is-fail'); text += hs.ok ? ' ✔' : ' ✖'; }
     if (hs.status === 'rolled') btn.classList.add('is-rolled');
@@ -2766,8 +2770,15 @@ function retoPool(nivel) {
   return fresh.length ? fresh : base;
 }
 
+// Dificultades que puede sacar el dado: las que este equipo todavía no ha jugado
+// (así el orden caótico cambia el orden, pero sigue habiendo un reto de cada nivel)
 function nivelItems() {
-  return NIVEL_KEYS.filter((k) => retoPool(k).length)
+  const jugadas = new Set(story.huecos
+    .filter((hs) => hs.reto && !RETOS_FIJOS.has(hs.reto))
+    .map((hs) => RETO_BY_N[hs.reto].dificultad));
+  const disponibles = NIVEL_KEYS.filter((k) => retoPool(k).length);
+  const faltan = disponibles.filter((k) => !jugadas.has(k));
+  return (faltan.length ? faltan : disponibles)
     .map((k) => ({ key: k, word: NIVELES[k].label, cls: `lvl-${k}` }));
 }
 
@@ -2810,7 +2821,7 @@ function openDice(h) {
 
   els.diceEyebrow.textContent = `Momento de reto ${h + 1} de ${HUECOS.length}`;
   els.diceSub.innerHTML = dice.libre
-    ? 'Dificultad libre: primero el dado elige la <strong>dificultad</strong> y luego el <strong>reto</strong>.'
+    ? 'Primero el dado elige la <strong>dificultad</strong> (entre las que faltan) y luego el <strong>reto</strong>.'
     : `El dado elegirá uno de los retos de nivel <strong>${NIVELES[nivel].label}</strong>.`;
   els.diceResult.innerHTML = '';
   els.diceStage.classList.remove('rolling', 'landed');
